@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare } from "lucide-react";
+import { MOCK_POSTS } from "@/lib/mockData";
 import { timeAgo, formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
 import PostTypeBadge from "@/components/features/PostTypeBadge";
@@ -20,7 +21,7 @@ export default function PostPage() {
   const [commentSheetOpen, setCommentSheetOpen] = useState(false);
   const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null);
 
-  const post = posts.find((p) => p.id === id);
+  const post = posts.find((p) => p.id === id) ?? MOCK_POSTS.find((p) => p.id === id);
 
   if (!post) {
     return (

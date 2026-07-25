@@ -7,12 +7,6 @@ export default defineConfig({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: [
-      "localhost",
-      "127.0.0.1",
-      ".vercel.run",
-      ".vercel.app",
-    ],
   },
   plugins: [
     react(),

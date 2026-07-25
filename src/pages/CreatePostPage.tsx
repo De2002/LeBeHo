@@ -56,11 +56,9 @@ export default function CreatePostPage() {
     setSubmitting(true);
 
     try {
-      // 1. Resolve image URL
-      let finalImageUrl: string | null = null;
-
+      // 1. Upload image to Storage if a file was dropped/selected
+      let finalImageUrl = imageUrl.startsWith("blob:") ? "" : imageUrl;
       if (imageFile) {
-        // Local file selected — upload to storage
         try {
           finalImageUrl = await uploadPostImage(user.id, imageFile);
           console.log("[CreatePost] image uploaded:", finalImageUrl);
@@ -70,21 +68,16 @@ export default function CreatePostPage() {
           setSubmitting(false);
           return;
         }
-      } else if (imageUrl && !imageUrl.startsWith("blob:")) {
-        // Remote URL entered manually
-        finalImageUrl = imageUrl;
-        console.log("[CreatePost] using remote image URL:", finalImageUrl);
       }
 
       // 2. Save post to Supabase
-      console.log("[CreatePost] saving with imageUrl:", finalImageUrl);
       const postId = await createPost({
         userId: user.id,
         mainPoint: mainPoint.trim(),
         explanation: explanationText.trim(),
         category,
         type: postType,
-        imageUrl: finalImageUrl ?? undefined,
+        imageUrl: finalImageUrl || undefined,
         sources,
       });
 
