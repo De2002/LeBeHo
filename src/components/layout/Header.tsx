@@ -5,7 +5,6 @@ import logoWhite from "@/assets/lebeho-white-icon.png";
 import { PenLine, Search, Bell, LogOut, UserCircle, Settings, BarChart2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "@/lib/authService";
-import { getStoredUser } from "@/lib/auth";
 import { useState, useRef } from "react";
 import NotificationPanel from "@/components/features/NotificationPanel";
 import AuthModal from "@/components/features/AuthModal";
@@ -29,8 +28,7 @@ export default function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { unreadCount } = useNotifications();
 
-  // Use real auth user if signed in, else fall back to mock avatar for layout
-  const mockUser = getStoredUser();
+  // Use real auth user if signed in
   const displayUser: AuthUser | null = user ?? null;
 
   const handleSearch = (e: React.FormEvent) => {
