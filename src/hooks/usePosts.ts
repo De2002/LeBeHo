@@ -1,18 +1,23 @@
 import { useState, useCallback, useEffect } from "react";
 import { fetchPosts, rowToPost } from "@/lib/postService";
 import { fetchUserReactions, toggleReaction, type ReactionType } from "@/lib/reactionService";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { Post, Category } from "@/types";
 import { toast } from "sonner";
 
-const DISCUSSIONS_KEY = "lebehо_discussions";
+async function getFollowedDiscussions(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("discussion_follows")
+    .select("post_id")
+    .eq("user_id", userId);
 
-function getStoredDiscussions(): string[] {
-  try {
-    const stored = localStorage.getItem(DISCUSSIONS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return [];
+  if (error) {
+    console.error("[getFollowedDiscussions] Error:", error);
+    return [];
+  }
+
+  return data?.map((row) => row.post_id) || [];
 }
 
 export function usePosts(opts?: { category?: Category | null; userId?: string }) {
@@ -26,12 +31,16 @@ export function usePosts(opts?: { category?: Category | null; userId?: string })
     setError(null);
     try {
       const rows = await fetchPosts({ category: opts?.category, userId: opts?.userId });
-      const followedDiscussions = getStoredDiscussions();
 
       // Fetch per-user reactions from Supabase if logged in
       let userReactions: Record<string, ReactionType> = {};
-      if (user?.id && rows.length > 0) {
-        userReactions = await fetchUserReactions(user.id, rows.map((r) => r.id));
+      let followedDiscussions: string[] = [];
+      
+      if (user?.id) {
+        if (rows.length > 0) {
+          userReactions = await fetchUserReactions(user.id, rows.map((r) => r.id));
+        }
+        followedDiscussions = await getFollowedDiscussions(user.id);
       }
 
       const mapped = rows.map((row) => rowToPost(row, userReactions, followedDiscussions));
@@ -118,20 +127,48 @@ export function usePosts(opts?: { category?: Category | null; userId?: string })
     [user, posts, loadPosts]
   );
 
-  const toggleDiscussion = useCallback((postId: string) => {
-    const discussions = getStoredDiscussions();
-    const idx = discussions.indexOf(postId);
-    if (idx >= 0) discussions.splice(idx, 1);
-    else discussions.push(postId);
-    localStorage.setItem(DISCUSSIONS_KEY, JSON.stringify(discussions));
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? { ...p, isFollowingDiscussion: discussions.includes(postId) }
-          : p
-      )
-    );
-  }, []);
+  const toggleDiscussion = useCallback(
+    async (postId: string) => {
+      if (!user?.id) {
+        toast.error("Sign in to follow discussions.");
+        return;
+      }
+
+      try {
+        const currentPost = posts.find((p) => p.id === postId);
+        const isCurrentlyFollowing = currentPost?.isFollowingDiscussion || false;
+
+        if (isCurrentlyFollowing) {
+          // Unfollow
+          const { error } = await supabase
+            .from("discussion_follows")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("post_id", postId);
+
+          if (error) throw error;
+        } else {
+          // Follow
+          const { error } = await supabase
+            .from("discussion_follows")
+            .insert({ user_id: user.id, post_id: postId });
+
+          if (error) throw error;
+        }
+
+        // Update local state
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === postId ? { ...p, isFollowingDiscussion: !isCurrentlyFollowing } : p
+          )
+        );
+      } catch (err) {
+        console.error("[toggleDiscussion] Error:", err);
+        toast.error("Failed to update discussion follow.");
+      }
+    },
+    [user?.id, posts]
+  );
 
   const prependPost = useCallback((post: Post) => {
     setPosts((prev) => [post, ...prev]);

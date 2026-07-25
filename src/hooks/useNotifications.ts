@@ -1,156 +1,124 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 import type { AppNotification } from "@/types/notifications";
 
-const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "n1",
-    kind: "reaction",
-    read: false,
-    createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    actor: {
-      id: "u2",
-      username: "naomi_k",
-      displayName: "Naomi Kessler",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=80&h=80&fit=crop&crop=faces",
-    },
-    post: {
-      id: "p1",
-      mainPoint: "AI won't replace developers. It will replace repetitive work.",
-    },
-    reactionLabel: "Agreed",
-  },
-  {
-    id: "n2",
-    kind: "reaction",
-    read: false,
-    createdAt: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
-    actor: {
-      id: "u5",
-      username: "marcus_thinks",
-      displayName: "Marcus Bell",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=faces",
-    },
-    post: {
-      id: "p1",
-      mainPoint: "AI won't replace developers. It will replace repetitive work.",
-    },
-    reactionLabel: "Disagreed",
-  },
-  {
-    id: "n3",
-    kind: "comment",
-    read: false,
-    createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    actor: {
-      id: "u3",
-      username: "carlosdev",
-      displayName: "Carlos Mendoza",
-      avatar:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop&crop=faces",
-    },
-    post: {
-      id: "p2",
-      mainPoint: "Games are becoming too focused on monetization and less focused on fun.",
-    },
-    commentSnippet:
-      "The shift started when publishers realized engagement metrics were easier to optimize than review scores…",
-  },
-  {
-    id: "n4",
-    kind: "comment",
-    read: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    actor: {
-      id: "u1",
-      username: "sethwright",
-      displayName: "Seth Wright",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces",
-    },
-    post: {
-      id: "p2",
-      mainPoint: "Games are becoming too focused on monetization and less focused on fun.",
-    },
-    commentSnippet:
-      "Worth noting that indie games have been the counter-movement here. Look at Hades, Celeste, Stardew…",
-  },
-  {
-    id: "n5",
-    kind: "new_post",
-    read: true,
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    actor: {
-      id: "u4",
-      username: "dr_fiona_ash",
-      displayName: "Dr. Fiona Ash",
-      avatar:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=faces",
-    },
-    post: {
-      id: "p4",
-      mainPoint:
-        "We will see the first commercially viable carbon capture operation at industrial scale before 2030.",
-    },
-  },
-  {
-    id: "n6",
-    kind: "new_post",
-    read: true,
-    createdAt: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString(),
-    actor: {
-      id: "u2",
-      username: "naomi_k",
-      displayName: "Naomi Kessler",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=80&h=80&fit=crop&crop=faces",
-    },
-    post: {
-      id: "p3",
-      mainPoint: "Small communities are more valuable than large audiences.",
-    },
-  },
-];
+async function fetchNotifications(userId: string): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(
+      `
+      id,
+      kind,
+      read,
+      created_at,
+      actor:actor_id(id, username, display_name, avatar),
+      post:post_id(id, main_point),
+      reaction_label,
+      comment_snippet
+    `
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
-const STORAGE_KEY = "lebehо_notif_read";
+  if (error) {
+    console.error("[fetchNotifications] Error:", error);
+    return [];
+  }
 
-function getReadIds(): Set<string> {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return new Set(JSON.parse(stored) as string[]);
-  } catch {}
-  return new Set();
-}
-
-function saveReadIds(ids: Set<string>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+  return (
+    data?.map((n) => ({
+      id: n.id,
+      kind: n.kind as "reaction" | "comment" | "new_post",
+      read: n.read,
+      createdAt: n.created_at,
+      actor: n.actor,
+      post: n.post,
+      reactionLabel: n.reaction_label,
+      commentSnippet: n.comment_snippet,
+    })) || []
+  );
 }
 
 export function useNotifications() {
-  const [readIds, setReadIds] = useState<Set<string>>(getReadIds);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const notifications: AppNotification[] = MOCK_NOTIFICATIONS.map((n) => ({
-    ...n,
-    read: readIds.has(n.id) || n.read,
-  }));
+  useEffect(() => {
+    if (!user?.id) {
+      setNotifications([]);
+      return;
+    }
+
+    const loadNotifications = async () => {
+      setLoading(true);
+      const notifs = await fetchNotifications(user.id);
+      setNotifications(notifs);
+      setLoading(false);
+    };
+
+    loadNotifications();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllRead = useCallback(() => {
-    const allIds = new Set(MOCK_NOTIFICATIONS.map((n) => n.id));
-    saveReadIds(allIds);
-    setReadIds(allIds);
-  }, []);
+  const markAllRead = useCallback(async () => {
+    if (!user?.id) return;
 
-  const markRead = useCallback((id: string) => {
-    setReadIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      saveReadIds(next);
-      return next;
-    });
-  }, []);
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", user.id);
 
-  return { notifications, unreadCount, markAllRead, markRead };
+    if (error) {
+      console.error("[markAllRead] Error:", error);
+      return;
+    }
+
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, [user?.id]);
+
+  const markRead = useCallback(
+    async (id: string) => {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("[markRead] Error:", error);
+        return;
+      }
+
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    },
+    [user?.id]
+  );
+
+  return { notifications, unreadCount, markAllRead, markRead, loading };
 }
