@@ -1,4 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "@/hooks/useTheme";
+import logoBlack from "@/assets/lebeho-black-icon.png";
+import logoWhite from "@/assets/lebeho-white-icon.png";
 import { PenLine, Search, Bell, LogOut, UserCircle, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "@/lib/authService";
@@ -14,6 +17,7 @@ type AuthMode = "login" | "signup";
 
 export default function Header() {
   const { user, loading } = useAuth();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,6 +66,11 @@ export default function Header() {
             className="flex-shrink-0 flex items-center gap-2 group"
             aria-label="LeBeHo home"
           >
+            <img
+              src={resolvedTheme === "dark" ? logoWhite : logoBlack}
+              alt="LeBeHo"
+              className="w-8 h-8 object-contain flex-shrink-0 group-hover:opacity-80 transition-opacity"
+            />
             <span className="text-lg font-extrabold tracking-tight text-[hsl(var(--text-primary))] group-hover:opacity-80 transition-opacity">
               LeBeHo
             </span>
