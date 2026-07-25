@@ -133,7 +133,7 @@ export default function PostItem({
 
         <Link to={`/post/${post.id}`} className="lb-btn-ghost">
           <MessageSquare size={14} />
-          <span>{formatCount(post.commentsCount)}</span>
+          <span className="gc-counter" data-url={postUrl} />
         </Link>
 
         <button

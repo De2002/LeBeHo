@@ -19,6 +19,8 @@ declare global {
     __semio__params?: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     __semio__gc_sidePanel_graphlogin?: (params: any) => void;
+    __semio__helpers_counter?: (siteId: string) => void;
+    graphcomment_counter?: () => void;
   }
 }
 
@@ -29,7 +31,7 @@ export default function PostPage() {
 
   const post = posts.find((p) => p.id === id) ?? MOCK_POSTS.find((p) => p.id === id);
 
-  // Load GraphComment widget keyed to this post's id
+  // Load GraphComment side-panel + counter
   useEffect(() => {
     if (!id) return;
 
@@ -68,6 +70,20 @@ export default function PostPage() {
       }
     };
     (document.head || document.body).appendChild(gc);
+
+    // Load counter script if not already present
+    if (!document.getElementById("gc-counter-script")) {
+      const cs = document.createElement("script");
+      cs.id = "gc-counter-script";
+      cs.type = "text/javascript";
+      cs.async = true;
+      cs.defer = true;
+      cs.src = "https://integration.graphcomment.com/helpers_counter.js?" + Date.now();
+      cs.onload = () => window.__semio__helpers_counter?.("LeBeHo");
+      (document.head || document.body).appendChild(cs);
+    } else {
+      window.graphcomment_counter?.();
+    }
 
     return () => {
       const s = document.getElementById("gc-script");
@@ -185,7 +201,7 @@ export default function PostPage() {
         <div className="w-px h-4 bg-[hsl(var(--border))] mx-1" />
         <span className="lb-btn-ghost cursor-default">
           <MessageSquare size={14} />
-          <span>{formatCount(post.commentsCount)}</span>
+          <span className="gc-counter" data-url={`${window.location.origin}/post/${post.id}`} />
         </span>
         <button
           onClick={() => toggleDiscussion(post.id)}
