@@ -78,10 +78,11 @@ export default function EditPostPage() {
 
     setSubmitting(true);
     try {
-      // If imageUrl is still an object/blob URL, the user selected a new file
-      let finalImageUrl: string | null =
-        imageUrl && !imageUrl.startsWith("blob:") ? imageUrl : null;
+      // Resolve final image URL
+      let finalImageUrl: string | null = null;
+
       if (imageFile) {
+        // New file selected — upload it
         try {
           finalImageUrl = await uploadPostImage(user.id, imageFile);
           console.log("[EditPost] image uploaded:", finalImageUrl);
@@ -90,7 +91,11 @@ export default function EditPostPage() {
           setSubmitting(false);
           return;
         }
+      } else if (imageUrl && !imageUrl.startsWith("blob:")) {
+        // Kept existing storage URL or entered remote URL
+        finalImageUrl = imageUrl;
       }
+      // else: image was cleared — finalImageUrl stays null
 
       await updatePost(id, {
         mainPoint: mainPoint.trim(),

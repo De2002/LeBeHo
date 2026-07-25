@@ -58,16 +58,17 @@ export default function ImageDropZone({ value, onChange }: ImageDropZoneProps) {
 
   if (value) {
     return (
-      <div className="relative group mb-4">
+      <div className="relative mb-4">
         <img
           src={value}
           alt="Post image preview"
           className="w-full h-52 object-cover rounded-sm border border-[hsl(var(--border))]"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
         <button
           type="button"
           onClick={() => onChange("")}
-          className="absolute top-2 right-2 p-1.5 rounded-sm bg-[hsl(var(--background)/0.9)] border border-[hsl(var(--border))] text-[hsl(var(--text-secondary))] hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+          className="absolute top-2 right-2 p-1.5 rounded-sm bg-[hsl(var(--background))] border border-[hsl(var(--border))] text-[hsl(var(--text-secondary))] hover:text-rose-500 transition-colors shadow-sm"
           aria-label="Remove image"
         >
           <X size={13} />

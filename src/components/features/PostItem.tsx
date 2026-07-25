@@ -99,8 +99,9 @@ export default function PostItem({
           <img
             src={post.image}
             alt="Post visual"
-            className="w-full h-48 sm:h-56 object-cover rounded-sm border border-[hsl(var(--border))]"
+            className="w-full max-h-[280px] object-cover rounded-sm border border-[hsl(var(--border))]"
             loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
         </Link>
       )}
