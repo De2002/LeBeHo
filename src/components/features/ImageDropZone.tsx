@@ -1,6 +1,6 @@
 
 import { useCallback, useRef, useState } from "react";
-import { ImageIcon, X, Upload, Link as LinkIcon } from "lucide-react";
+import { X, Upload, Link as LinkIcon } from "lucide-react";
 
 interface ImageDropZoneProps {
   value: string;
@@ -12,16 +12,16 @@ export default function ImageDropZone({ value, onChange }: ImageDropZoneProps) {
   const [urlMode, setUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Keep a stable ref to onChange so callbacks don't go stale
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
-  const readFile = (file: File) => {
+  const readFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) onChange(result, file);
-    };
-    reader.readAsDataURL(file);
-  };
+    // Pass the File directly — preview via object URL, upload on submit
+    const previewUrl = URL.createObjectURL(file);
+    onChangeRef.current(previewUrl, file);
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -30,7 +30,7 @@ export default function ImageDropZone({ value, onChange }: ImageDropZoneProps) {
       const file = e.dataTransfer.files[0];
       if (file) readFile(file);
     },
-    [readFile] // Corrected: Added readFile to the dependency array
+    [readFile]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -43,6 +43,8 @@ export default function ImageDropZone({ value, onChange }: ImageDropZoneProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) readFile(file);
+    // Reset input so the same file can be re-selected if removed
+    e.target.value = "";
   };
 
   const handleUrlSubmit = (e: React.FormEvent) => {

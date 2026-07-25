@@ -88,11 +88,23 @@ export default function CreatePostPage() {
     }
   };
 
-  // Handle image selection — store the file for upload on submit
+  // Handle image selection — store File for upload; url is just the preview
   const handleImageChange = (url: string, file?: File) => {
-    setImageUrl(url);
-    if (file) setImageFile(file);
-    else setImageFile(null);
+    if (!url) {
+      // Cleared
+      setImageUrl("");
+      setImageFile(null);
+      return;
+    }
+    if (file) {
+      // Local file: keep the File for upload, url is an object URL for preview
+      setImageFile(file);
+      setImageUrl(url);
+    } else {
+      // Remote URL entered manually
+      setImageFile(null);
+      setImageUrl(url);
+    }
   };
 
   return (
