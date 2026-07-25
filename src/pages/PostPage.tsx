@@ -1,8 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 import { MOCK_POSTS } from "@/lib/mockData";
-import { getStoredUser } from "@/lib/auth";
 import { timeAgo, formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
 import PostTypeBadge from "@/components/features/PostTypeBadge";
@@ -10,20 +9,71 @@ import TrustScore from "@/components/features/TrustScore";
 import ReactionBar from "@/components/features/ReactionBar";
 import SourceList from "@/components/features/SourceList";
 import ShareButton from "@/components/features/ShareButton";
-import CommentItem from "@/components/features/CommentItem";
 import FollowButton from "@/components/features/FollowButton";
 import { usePosts } from "@/hooks/usePosts";
-import { Bell, BellOff, ArrowUpRight, Star, Flame } from "lucide-react";
+import { Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare } from "lucide-react";
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    __semio__params?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    __semio__gc_sidePanel_graphlogin?: (params: any) => void;
+  }
+}
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { posts, react, toggleDiscussion } = usePosts();
-  const currentUser = getStoredUser();
-  const [commentText, setCommentText] = useState("");
-  const [submitted, setSubmitted] = useState(false);
 
   const post = posts.find((p) => p.id === id) ?? MOCK_POSTS.find((p) => p.id === id);
+
+  // Load GraphComment widget keyed to this post's id
+  useEffect(() => {
+    if (!id) return;
+
+    // Remove any previously injected instance
+    const existing = document.getElementById("gc-script");
+    if (existing) existing.remove();
+
+    window.__semio__params = {
+      graphcommentId: "LeBeHo",
+      behaviour: { uid: id },
+      sidePanel: {
+        width: 480,
+        button: {
+          background: "#0a0a0a",
+          color: "#ffffff",
+          label: "Read & React",
+        },
+        visible: true,
+      },
+    };
+
+    const gc = document.createElement("script");
+    gc.id = "gc-script";
+    gc.type = "text/javascript";
+    gc.async = true;
+    gc.defer = true;
+    gc.src =
+      "https://integration.graphcomment.com/gc_sidePanel_graphlogin.js?" +
+      Date.now();
+    gc.onload = () => {
+      if (
+        typeof window.__semio__gc_sidePanel_graphlogin === "function" &&
+        window.__semio__params
+      ) {
+        window.__semio__gc_sidePanel_graphlogin(window.__semio__params);
+      }
+    };
+    (document.head || document.body).appendChild(gc);
+
+    return () => {
+      const s = document.getElementById("gc-script");
+      if (s) s.remove();
+    };
+  }, [id]);
 
   if (!post) {
     return (
@@ -36,22 +86,10 @@ export default function PostPage() {
     );
   }
 
-  const handleComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
-    setCommentText("");
-    setSubmitted(true);
-  };
-
-  const displayComments = post.comments ?? [];
-
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
       {/* Back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="lb-btn-ghost mb-6 pl-0"
-      >
+      <button onClick={() => navigate(-1)} className="lb-btn-ghost mb-6 pl-0">
         <ArrowLeft size={14} />
         Back
       </button>
@@ -79,7 +117,8 @@ export default function PostPage() {
             </span>
           </div>
           <p className="text-xs text-[hsl(var(--text-muted))] mt-0.5">
-            @{post.author.username} · {formatCount(post.author.followersCount)} followers
+            @{post.author.username} · {formatCount(post.author.followersCount)}{" "}
+            followers
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
@@ -118,7 +157,7 @@ export default function PostPage() {
       )}
 
       {/* Explanation */}
-      <div className="prose prose-sm max-w-none mb-6">
+      <div className="mb-6">
         <p className="text-[16px] text-[hsl(var(--text-secondary))] leading-relaxed whitespace-pre-wrap">
           {post.explanation}
         </p>
@@ -150,70 +189,30 @@ export default function PostPage() {
         </span>
         <button
           onClick={() => toggleDiscussion(post.id)}
-          className={`lb-btn-ghost ${post.isFollowingDiscussion ? "text-[hsl(var(--accent))]" : ""}`}
+          className={`lb-btn-ghost ${
+            post.isFollowingDiscussion ? "text-[hsl(var(--accent))]" : ""
+          }`}
         >
-          {post.isFollowingDiscussion ? <BellOff size={14} /> : <Bell size={14} />}
-          {post.isFollowingDiscussion ? "Following discussion" : "Follow discussion"}
+          {post.isFollowingDiscussion ? (
+            <BellOff size={14} />
+          ) : (
+            <Bell size={14} />
+          )}
+          {post.isFollowingDiscussion
+            ? "Following discussion"
+            : "Follow discussion"}
         </button>
         <div className="ml-auto">
           <ShareButton title={post.mainPoint} text={post.mainPoint} />
         </div>
       </div>
 
-      {/* Comment composer */}
+      {/* GraphComment discussion panel */}
       <div className="mt-8 pt-6 border-t border-[hsl(var(--border))]">
         <h2 className="text-sm font-semibold text-[hsl(var(--text-primary))] mb-4">
-          Discussion · {formatCount(post.commentsCount + (submitted ? 1 : 0))}
+          Discussion
         </h2>
-
-        <form onSubmit={handleComment} className="flex gap-3 mb-8">
-          <img
-            src={currentUser.avatar}
-            alt={currentUser.displayName}
-            className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-1"
-          />
-          <div className="flex-1">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Add your perspective, challenge the idea, or share a source..."
-              rows={2}
-              className="lb-textarea w-full"
-            />
-            {commentText.trim() && (
-              <div className="flex justify-end mt-2">
-                <button type="submit" className="lb-btn-primary text-xs px-3 py-1.5">
-                  Post comment
-                </button>
-              </div>
-            )}
-          </div>
-        </form>
-
-        {submitted && (
-          <div className="flex gap-3 py-4 lb-divider-subtle animate-slide-up">
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.displayName}
-              className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-semibold text-[hsl(var(--text-primary))]">
-                  {currentUser.displayName}
-                </span>
-                <span className="text-xs text-[hsl(var(--text-muted))]">just now</span>
-              </div>
-              <p className="text-sm text-[hsl(var(--text-secondary))]">
-                Comment posted successfully.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {displayComments.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} />
-        ))}
+        <div id="graphcomment" />
       </div>
     </div>
   );
