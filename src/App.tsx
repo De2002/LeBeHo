@@ -9,6 +9,8 @@ import CreatePostPage from "@/pages/CreatePostPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import StatsPage from "@/pages/StatsPage";
+import EditPostPage from "@/pages/EditPostPage";
 import NotFound from "@/pages/NotFound";
 
 function AppShell() {
@@ -23,6 +25,8 @@ function AppShell() {
         <Route path="/create" element={<CreatePostPage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/settings/profile" element={<SettingsPage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/edit/:id" element={<EditPostPage />} />
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

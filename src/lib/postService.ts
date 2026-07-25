@@ -154,6 +154,65 @@ export async function createPost(input: CreatePostInput): Promise<string> {
   return data.id;
 }
 
+// ── Fetch single post ───────────────────────────────────────────────────────────
+export async function fetchPostById(postId: string): Promise<PostRow | null> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select(`
+      id,
+      user_id,
+      main_point,
+      explanation,
+      category,
+      type,
+      image_url,
+      sources,
+      reactions,
+      comments_count,
+      created_at,
+      user_profiles!posts_user_id_fkey (
+        id,
+        username,
+        display_name,
+        avatar_url,
+        bio,
+        topics
+      )
+    `)
+    .eq("id", postId)
+    .single();
+
+  if (error) return null;
+  return data as unknown as PostRow;
+}
+
+// ── Update post ───────────────────────────────────────────────────────────────
+export interface UpdatePostInput {
+  mainPoint: string;
+  explanation: string;
+  category: Category;
+  type: PostType;
+  imageUrl?: string | null;
+  sources: Source[];
+}
+
+export async function updatePost(postId: string, input: UpdatePostInput): Promise<void> {
+  const { error } = await supabase
+    .from("posts")
+    .update({
+      main_point: input.mainPoint,
+      explanation: input.explanation,
+      category: input.category,
+      type: input.type,
+      image_url: input.imageUrl ?? null,
+      sources: input.sources,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", postId);
+
+  if (error) throw error;
+}
+
 // ── Upload post image ─────────────────────────────────────────────────────────
 export async function uploadPostImage(userId: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() ?? "jpg";

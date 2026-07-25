@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import logoBlack from "@/assets/lebeho-black-icon.png";
 import logoWhite from "@/assets/lebeho-white-icon.png";
-import { PenLine, Search, Bell, LogOut, UserCircle, Settings } from "lucide-react";
+import { PenLine, Search, Bell, LogOut, UserCircle, Settings, BarChart2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "@/lib/authService";
 import { getStoredUser } from "@/lib/auth";
@@ -217,6 +217,14 @@ export default function Header() {
                         >
                           <Settings size={13} />
                           Edit Profile
+                        </Link>
+                        <Link
+                          to="/stats"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-xs text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface))] transition-colors"
+                        >
+                          <BarChart2 size={13} />
+                          Post Stats
                         </Link>
                         <Link
                           to="/create"
