@@ -4,7 +4,7 @@ import { ImageIcon, X, Upload, Link as LinkIcon } from "lucide-react";
 
 interface ImageDropZoneProps {
   value: string;
-  onChange: (url: string) => void;
+  onChange: (url: string, file?: File) => void;
 }
 
 export default function ImageDropZone({ value, onChange }: ImageDropZoneProps) {
@@ -18,7 +18,7 @@ export default function ImageDropZone({ value, onChange }: ImageDropZoneProps) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      if (result) onChange(result);
+      if (result) onChange(result, file);
     };
     reader.readAsDataURL(file);
   };

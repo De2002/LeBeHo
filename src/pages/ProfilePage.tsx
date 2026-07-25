@@ -3,7 +3,8 @@ import { MapPin, Calendar, ExternalLink } from "lucide-react";
 import { MOCK_USERS } from "@/lib/mockData";
 import { MOCK_POSTS } from "@/lib/mockData";
 import { getStoredUser } from "@/lib/auth";
-import { formatCount, timeAgo } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
 import FollowButton from "@/components/features/FollowButton";
 import TrustScore from "@/components/features/TrustScore";
@@ -14,8 +15,9 @@ import type { Category } from "@/types";
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const currentUser = getStoredUser();
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
-  const { posts, react, toggleDiscussion } = usePosts();
+  const { posts, react, toggleDiscussion } = usePosts({ userId: undefined });
 
   const profileUser =
     username === currentUser.username
@@ -33,7 +35,7 @@ export default function ProfilePage() {
     );
   }
 
-  const isOwnProfile = profileUser.id === currentUser.id;
+  const isOwnProfile = profileUser.id === currentUser.id || (authUser && profileUser.id === authUser.id);
   const userPosts = posts.filter((p) => p.author.id === profileUser.id);
   const joinDate = new Date(profileUser.joinedAt).toLocaleDateString("en-US", {
     month: "long",

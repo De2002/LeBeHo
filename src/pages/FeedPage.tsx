@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { PenLine } from "lucide-react";
+import { PenLine, Loader2, RefreshCw } from "lucide-react";
 import { FEED_TABS, CATEGORIES } from "@/constants";
 import { getFollowing } from "@/lib/auth";
 import PostFeed from "@/components/features/PostFeed";
@@ -15,17 +15,13 @@ import { useAuth } from "@/hooks/useAuth";
 export default function FeedPage() {
   const [activeTab, setActiveTab] = useState<FeedTab["id"]>("discover");
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const { posts, react, toggleDiscussion } = usePosts();
+  const { posts, loading, error, react, toggleDiscussion, reload } = usePosts({ category: activeCategory });
   const following = getFollowing();
   const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
 
   const filteredPosts = useMemo(() => {
     let list = posts;
-
-    if (activeCategory) {
-      list = list.filter((p) => p.category === activeCategory);
-    }
 
     if (activeTab === "following") {
       list = list.filter((p) => following.includes(p.author.id));
@@ -34,7 +30,7 @@ export default function FeedPage() {
     }
 
     return list;
-  }, [posts, activeTab, activeCategory, following]);
+  }, [posts, activeTab, following]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex gap-12">
@@ -56,7 +52,15 @@ export default function FeedPage() {
               {tab.label}
             </button>
           ))}
-          <div className="ml-auto pb-3">
+          <div className="ml-auto pb-3 flex items-center gap-2">
+            <button
+              onClick={() => reload()}
+              className="lb-btn-ghost p-1.5"
+              aria-label="Refresh feed"
+              title="Refresh"
+            >
+              <RefreshCw size={13} />
+            </button>
             <Link to="/create" className="lb-btn-primary sm:hidden">
               <PenLine size={14} />
             </Link>
@@ -99,8 +103,25 @@ export default function FeedPage() {
           ))}
         </div>
 
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 size={20} className="animate-spin text-[hsl(var(--text-muted))]" />
+          </div>
+        )}
+
+        {/* Error state */}
+        {!loading && error && (
+          <div className="py-10 text-center">
+            <p className="text-sm text-[hsl(var(--text-muted))] mb-3">{error}</p>
+            <button onClick={() => reload()} className="lb-btn-outline text-xs">
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* Following empty state */}
-        {activeTab === "following" && filteredPosts.length === 0 && (
+        {!loading && !error && activeTab === "following" && filteredPosts.length === 0 && (
           <div className="py-12 text-center">
             <p className="text-[hsl(var(--text-primary))] font-semibold mb-2">
               Your Following feed is empty
@@ -111,16 +132,18 @@ export default function FeedPage() {
           </div>
         )}
 
-        <PostFeed
-          posts={filteredPosts}
-          onReact={react}
-          onToggleDiscussion={toggleDiscussion}
-          emptyMessage={
-            activeTab === "truth-picks"
-              ? "No Truth Picks in this category yet."
-              : "No posts match these filters."
-          }
-        />
+        {!loading && !error && (
+          <PostFeed
+            posts={filteredPosts}
+            onReact={react}
+            onToggleDiscussion={toggleDiscussion}
+            emptyMessage={
+              activeTab === "truth-picks"
+                ? "No Truth Picks yet."
+                : "No posts match these filters."
+            }
+          />
+        )}
       </main>
 
       {/* Sidebar */}

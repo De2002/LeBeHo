@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Link as LinkIcon, Loader2 } from "lucide-react";
 import { CATEGORIES, POST_TYPE_LABELS, getCategoryMeta } from "@/constants";
-import type { PostType, Category, Source, Post } from "@/types";
-import { getStoredUser } from "@/lib/auth";
-import { usePosts } from "@/hooks/usePosts";
+import type { PostType, Category, Source } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
+import { createPost, uploadPostImage, rowToPost } from "@/lib/postService";
 import { toast } from "sonner";
 import ImageDropZone from "@/components/features/ImageDropZone";
 import RichTextEditor from "@/components/features/RichTextEditor";
@@ -23,13 +23,13 @@ function htmlToPlainText(html: string): string {
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
-  const { addPost } = usePosts();
-  const user = getStoredUser();
+  const { user } = useAuth();
 
   const [postType, setPostType] = useState<PostType>("opinion");
   const [category, setCategory] = useState<Category>("technology");
   const [mainPoint, setMainPoint] = useState("");
   const [explanationHtml, setExplanationHtml] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [moreLink, setMoreLink] = useState("");
@@ -44,39 +44,55 @@ export default function CreatePostPage() {
     explanationText.trim().length >= PLAIN_TEXT_MIN &&
     mainPoint.trim().length <= MAIN_POINT_MAX;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
+
+    if (!user) {
+      toast.error("You must be signed in to post.");
+      return;
+    }
+
     setSubmitting(true);
 
-    const newPost: Post = {
-      id: `p-${Date.now()}`,
-      author: user,
-      type: postType,
-      category,
-      mainPoint: mainPoint.trim(),
-      explanation: explanationText.trim(),
-      image: imageUrl || undefined,
-      sources,
-      moreLink: moreLink.trim() || undefined,
-      moreLinkLabel: moreLinkLabel.trim() || undefined,
-      reactions: {
-        positive: { type: "positive", count: 0, userReacted: false },
-        negative: { type: "negative", count: 0, userReacted: false },
-      },
-      commentsCount: 0,
-      comments: [],
-      createdAt: new Date().toISOString(),
-      isFollowingDiscussion: false,
-      trending: false,
-      truthPick: false,
-    };
+    try {
+      // 1. Upload image to Storage if a file was dropped/selected
+      let finalImageUrl = imageUrl;
+      if (imageFile) {
+        try {
+          finalImageUrl = await uploadPostImage(user.id, imageFile);
+        } catch (err) {
+          console.error("Image upload failed:", err);
+          toast.error("Image upload failed. Posting without image.");
+          finalImageUrl = "";
+        }
+      }
 
-    setTimeout(() => {
-      addPost(newPost);
+      // 2. Save post to Supabase
+      const postId = await createPost({
+        userId: user.id,
+        mainPoint: mainPoint.trim(),
+        explanation: explanationText.trim(),
+        category,
+        type: postType,
+        imageUrl: finalImageUrl || undefined,
+        sources,
+      });
+
       toast.success("Your post is live.");
-      navigate(`/post/${newPost.id}`);
-    }, 500);
+      navigate(`/post/${postId}`);
+    } catch (err: unknown) {
+      console.error("Failed to create post:", err);
+      toast.error((err as Error).message || "Failed to create post.");
+      setSubmitting(false);
+    }
+  };
+
+  // Handle image selection — store the file for upload on submit
+  const handleImageChange = (url: string, file?: File) => {
+    setImageUrl(url);
+    if (file) setImageFile(file);
+    else setImageFile(null);
   };
 
   return (
@@ -90,6 +106,12 @@ export default function CreatePostPage() {
           Make a Point
         </h1>
       </div>
+
+      {!user && (
+        <div className="mb-6 px-4 py-3 border border-[hsl(var(--border))] rounded-sm text-sm text-[hsl(var(--text-muted))]">
+          You must be signed in to publish a post.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
         {/* Post type */}
@@ -174,7 +196,7 @@ export default function CreatePostPage() {
               — optional
             </span>
           </label>
-          <ImageDropZone value={imageUrl} onChange={setImageUrl} />
+          <ImageDropZone value={imageUrl} onChange={handleImageChange} />
         </div>
 
         {/* Explanation — rich text */}
@@ -253,10 +275,17 @@ export default function CreatePostPage() {
           </div>
           <button
             type="submit"
-            disabled={!canSubmit || submitting}
-            className="lb-btn-primary disabled:opacity-40"
+            disabled={!canSubmit || submitting || !user}
+            className="lb-btn-primary disabled:opacity-40 min-w-[80px] justify-center"
           >
-            {submitting ? "Posting…" : "Post"}
+            {submitting ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                Posting…
+              </>
+            ) : (
+              "Post"
+            )}
           </button>
         </div>
       </form>
