@@ -154,34 +154,6 @@ export async function createPost(input: CreatePostInput): Promise<string> {
   return data.id;
 }
 
-// ── Update reactions ──────────────────────────────────────────────────────────
-export async function updateReaction(
-  postId: string,
-  delta: { positive?: number; negative?: number }
-): Promise<void> {
-  // Use an RPC-safe pattern: read current then update
-  const { data, error: readError } = await supabase
-    .from("posts")
-    .select("reactions")
-    .eq("id", postId)
-    .single();
-
-  if (readError) throw readError;
-
-  const current = (data?.reactions as { positive: number; negative: number }) ?? { positive: 0, negative: 0 };
-  const updated = {
-    positive: Math.max(0, current.positive + (delta.positive ?? 0)),
-    negative: Math.max(0, current.negative + (delta.negative ?? 0)),
-  };
-
-  const { error } = await supabase
-    .from("posts")
-    .update({ reactions: updated })
-    .eq("id", postId);
-
-  if (error) throw error;
-}
-
 // ── Upload post image ─────────────────────────────────────────────────────────
 export async function uploadPostImage(userId: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() ?? "jpg";
