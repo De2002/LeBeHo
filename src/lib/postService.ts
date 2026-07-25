@@ -99,7 +99,7 @@ export async function fetchPosts(opts?: {
       reactions,
       comments_count,
       created_at,
-      user_profiles (
+      user_profiles!posts_user_id_fkey (
         id,
         username,
         display_name,
