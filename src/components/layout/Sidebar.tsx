@@ -1,13 +1,35 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { TrendingUp, Hash } from "lucide-react";
 import { CATEGORIES } from "@/constants";
-import { MOCK_POSTS, MOCK_USERS } from "@/lib/mockData";
+import { supabase } from "@/lib/supabase";
 import FollowButton from "@/components/features/FollowButton";
 import { formatCount } from "@/lib/utils";
+import { usePosts } from "@/hooks/usePosts";
+import type { User } from "@/types";
 
 export default function Sidebar() {
-  const trendingPosts = MOCK_POSTS.filter((p) => p.trending).slice(0, 3);
-  const suggestedUsers = MOCK_USERS.slice(0, 3);
+  const { posts } = usePosts();
+  const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const fetchSuggestedUsers = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .limit(3);
+
+      if (error) {
+        console.error("[Sidebar] Error fetching users:", error);
+      } else {
+        setSuggestedUsers((data || []) as User[]);
+      }
+    };
+
+    fetchSuggestedUsers();
+  }, []);
+
+  const trendingPosts = posts.filter((p) => p.trending).slice(0, 3);
 
   return (
     <aside className="hidden lg:block w-[280px] flex-shrink-0">
