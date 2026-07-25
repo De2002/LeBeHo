@@ -34,10 +34,10 @@ export default function PostItem({
   return (
     <article className="py-6 lb-divider animate-fade-in">
       {/* Meta row */}
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-start gap-3 mb-3">
         <Link
           to={`/profile/${post.author.username}`}
-          className="flex-shrink-0"
+          className="flex-shrink-0 mt-0.5"
           aria-label={post.author.displayName}
         >
           <img
@@ -46,32 +46,41 @@ export default function PostItem({
             className="w-8 h-8 rounded-full object-cover hover:opacity-80 transition-opacity"
           />
         </Link>
-        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-          <Link
-            to={`/profile/${post.author.username}`}
-            className="text-sm font-semibold text-[hsl(var(--text-primary))] hover:underline"
-          >
-            {post.author.displayName}
-          </Link>
-          <TrustScore score={post.author.trustScore} />
-          <span className="text-[hsl(var(--border))]">·</span>
-          <span className="text-xs text-[hsl(var(--text-muted))]">
-            {timeAgo(post.createdAt)}
-          </span>
-          {post.trending && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-orange-500 uppercase tracking-wide">
-              <Flame size={10} />
-              Trending
+        <div className="flex-1 min-w-0">
+          {/* Row 1: name, trust, time, flags */}
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <Link
+              to={`/profile/${post.author.username}`}
+              className="text-sm font-semibold text-[hsl(var(--text-primary))] hover:underline"
+            >
+              {post.author.displayName}
+            </Link>
+            <TrustScore score={post.author.trustScore} />
+            <span className="text-[hsl(var(--border))]">·</span>
+            <span className="text-xs text-[hsl(var(--text-muted))] whitespace-nowrap">
+              {timeAgo(post.createdAt)}
             </span>
-          )}
-          {post.truthPick && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-500 uppercase tracking-wide">
-              <Star size={10} />
-              Truth Pick
-            </span>
-          )}
+            {post.trending && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-orange-500 uppercase tracking-wide">
+                <Flame size={10} />
+                Trending
+              </span>
+            )}
+            {post.truthPick && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-500 uppercase tracking-wide">
+                <Star size={10} />
+                Truth Pick
+              </span>
+            )}
+          </div>
+          {/* Row 2: badges (only show on mobile as second line; hidden on sm+ where they fit) */}
+          <div className="flex items-center gap-1.5 mt-1 sm:hidden">
+            <CategoryBadge category={post.category} />
+            <PostTypeBadge type={post.type} />
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Badges on the right — hidden on mobile, shown on sm+ */}
+        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
           <CategoryBadge category={post.category} />
           <PostTypeBadge type={post.type} />
         </div>

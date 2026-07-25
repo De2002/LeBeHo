@@ -54,6 +54,7 @@ export default function PostPage() {
           />
         </Link>
         <div className="flex-1 min-w-0">
+          {/* Row 1: name + trust score + time */}
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               to={`/profile/${post.author.username}`}
@@ -62,18 +63,20 @@ export default function PostPage() {
               {post.author.displayName}
             </Link>
             <TrustScore score={post.author.trustScore} showLabel />
-            <span className="text-xs text-[hsl(var(--text-muted))]">
+            <span className="text-xs text-[hsl(var(--text-muted))] whitespace-nowrap">
               {timeAgo(post.createdAt)}
             </span>
           </div>
-          <p className="text-xs text-[hsl(var(--text-muted))] mt-0.5">
+          {/* Row 2: username + followers */}
+          <p className="text-xs text-[hsl(var(--text-muted))] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
             @{post.author.username} · {formatCount(post.author.followersCount)} followers
           </p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-          <CategoryBadge category={post.category} />
-          <PostTypeBadge type={post.type} />
-          <FollowButton userId={post.author.id} size="sm" />
+          {/* Row 3: badges + follow — stacked on mobile */}
+          <div className="flex items-center gap-2 flex-wrap mt-2">
+            <CategoryBadge category={post.category} />
+            <PostTypeBadge type={post.type} />
+            <FollowButton userId={post.author.id} size="sm" />
+          </div>
         </div>
       </div>
 
