@@ -57,14 +57,16 @@ export default function CreatePostPage() {
 
     try {
       // 1. Upload image to Storage if a file was dropped/selected
-      let finalImageUrl = imageUrl;
+      let finalImageUrl = imageUrl.startsWith("blob:") ? "" : imageUrl;
       if (imageFile) {
         try {
           finalImageUrl = await uploadPostImage(user.id, imageFile);
-        } catch (err) {
-          console.error("Image upload failed:", err);
-          toast.error("Image upload failed. Posting without image.");
-          finalImageUrl = "";
+          console.log("[CreatePost] image uploaded:", finalImageUrl);
+        } catch (err: unknown) {
+          console.error("[CreatePost] Image upload failed:", err);
+          toast.error(`Image upload failed: ${(err as Error).message ?? "unknown error"}`);
+          setSubmitting(false);
+          return;
         }
       }
 

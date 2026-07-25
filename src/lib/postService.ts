@@ -218,15 +218,26 @@ export async function uploadPostImage(userId: string, file: File): Promise<strin
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${userId}/${Date.now()}.${ext}`;
 
-  const arrayBuffer = await file.arrayBuffer();
-  const blob = new Blob([arrayBuffer], { type: file.type });
-
-  const { error } = await supabase.storage
+  // Use upsert:true so re-uploads never fail on duplicate path
+  const { data: uploadData, error } = await supabase.storage
     .from("post-images")
-    .upload(path, blob, { upsert: false, contentType: file.type });
+    .upload(path, file, { upsert: true, contentType: file.type });
 
-  if (error) throw error;
+  if (error) {
+    console.error("[uploadPostImage] storage error:", error);
+    throw new Error(error.message);
+  }
 
+  console.log("[uploadPostImage] uploaded to:", uploadData?.path);
   const { data } = supabase.storage.from("post-images").getPublicUrl(path);
   return data.publicUrl;
+}
+
+// ── Delete post ───────────────────────────────────────────────────────────────
+export async function deletePost(postId: string): Promise<void> {
+  const { error } = await supabase
+    .from("posts")
+    .delete()
+    .eq("id", postId);
+  if (error) throw error;
 }

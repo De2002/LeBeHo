@@ -78,13 +78,17 @@ export default function EditPostPage() {
 
     setSubmitting(true);
     try {
-      let finalImageUrl: string | null = imageUrl || null;
+      // If imageUrl is still an object/blob URL, the user selected a new file
+      let finalImageUrl: string | null =
+        imageUrl && !imageUrl.startsWith("blob:") ? imageUrl : null;
       if (imageFile) {
         try {
           finalImageUrl = await uploadPostImage(user.id, imageFile);
-        } catch {
-          toast.error("Image upload failed. Saving without new image.");
-          finalImageUrl = null;
+          console.log("[EditPost] image uploaded:", finalImageUrl);
+        } catch (err: unknown) {
+          toast.error(`Image upload failed: ${(err as Error).message ?? "unknown error"}`);
+          setSubmitting(false);
+          return;
         }
       }
 
