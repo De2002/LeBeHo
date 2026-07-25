@@ -165,6 +165,8 @@ function Composer({ placeholder, onSubmit, autoFocus, onCancel, compact, avatar 
     try {
       await onSubmit(text.trim());
       setText("");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "Failed to submit.");
     } finally {
       setSubmitting(false);
     }
@@ -280,30 +282,21 @@ export default function CommentSection({
   }, [replyTarget]);
 
   const handleAddComment = async (content: string) => {
-    if (!user) return;
-    try {
-      await addComment(postId, user.id, content);
-      await load();
-      toast.success("Comment posted.");
-    } catch (err) {
-      console.error("addComment failed:", err);
-      toast.error("Failed to post comment.");
-      throw err;
+    if (!user) {
+      toast.error("Sign in to comment.");
+      return;
     }
+    await addComment(postId, user.id, content);
+    await load();
+    toast.success("Comment posted.");
   };
 
   const handleAddReply = async (content: string) => {
     if (!user || !replyTarget) return;
-    try {
-      await addComment(postId, user.id, content, replyTarget.id);
-      setReplyTarget(null);
-      await load();
-      toast.success("Reply posted.");
-    } catch (err) {
-      console.error("addReply failed:", err);
-      toast.error("Failed to post reply.");
-      throw err;
-    }
+    await addComment(postId, user.id, content, replyTarget.id);
+    setReplyTarget(null);
+    await load();
+    toast.success("Reply posted.");
   };
 
   const handleDelete = async (commentId: string) => {
