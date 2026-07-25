@@ -215,49 +215,22 @@ export async function updatePost(postId: string, input: UpdatePostInput): Promis
 
 // ── Upload post image ─────────────────────────────────────────────────────────
 export async function uploadPostImage(userId: string, file: File): Promise<string> {
-  // Validate file
-  if (!file || file.size === 0) {
-    throw new Error("File is empty or invalid");
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error("File size exceeds 10MB limit");
-  }
-
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${userId}/${Date.now()}.${ext}`;
 
-  try {
-    // Use upsert:true so re-uploads never fail on duplicate path
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("post-images")
-      .upload(path, file, { upsert: true, contentType: file.type });
+  // Use upsert:true so re-uploads never fail on duplicate path
+  const { data: uploadData, error } = await supabase.storage
+    .from("post-images")
+    .upload(path, file, { upsert: true, contentType: file.type });
 
-    if (uploadError) {
-      console.error("[uploadPostImage] Supabase storage error:", uploadError);
-      throw new Error(`Storage upload failed: ${uploadError.message}`);
-    }
-
-    if (!uploadData) {
-      throw new Error("Upload succeeded but no data returned from server");
-    }
-
-    console.log("[uploadPostImage] uploaded to:", uploadData.path);
-
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from("post-images")
-      .getPublicUrl(path);
-
-    if (!publicUrlData?.publicUrl) {
-      throw new Error("Failed to generate public URL for uploaded image");
-    }
-
-    return publicUrlData.publicUrl;
-  } catch (err) {
-    console.error("[uploadPostImage] Error:", err);
-    throw err instanceof Error ? err : new Error("Unknown upload error");
+  if (error) {
+    console.error("[uploadPostImage] storage error:", error);
+    throw new Error(error.message);
   }
+
+  console.log("[uploadPostImage] uploaded to:", uploadData?.path);
+  const { data } = supabase.storage.from("post-images").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Delete post ───────────────────────────────────────────────────────────────

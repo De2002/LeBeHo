@@ -1,7 +1,8 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { MapPin, Calendar, ExternalLink } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { MOCK_USERS } from "@/lib/mockData";
+import { MOCK_POSTS } from "@/lib/mockData";
+import { getStoredUser } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
@@ -9,48 +10,19 @@ import FollowButton from "@/components/features/FollowButton";
 import TrustScore from "@/components/features/TrustScore";
 import PostItem from "@/components/features/PostItem";
 import { usePosts } from "@/hooks/usePosts";
-import type { User, Category } from "@/types";
+import type { Category } from "@/types";
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
+  const currentUser = getStoredUser();
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
-  const { posts, react, toggleDiscussion } = usePosts();
-  const [profileUser, setProfileUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { posts, react, toggleDiscussion } = usePosts({ userId: undefined });
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!username) {
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("username", username)
-        .single();
-
-      if (error) {
-        console.error("[ProfilePage] Error fetching user:", error);
-      } else {
-        setProfileUser(data as User);
-      }
-
-      setLoading(false);
-    };
-
-    fetchUser();
-  }, [username]);
-
-  if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <p className="text-[hsl(var(--text-muted))]">Loading...</p>
-      </div>
-    );
-  }
+  const profileUser =
+    username === currentUser.username
+      ? currentUser
+      : MOCK_USERS.find((u) => u.username === username);
 
   if (!profileUser) {
     return (
@@ -63,7 +35,7 @@ export default function ProfilePage() {
     );
   }
 
-  const isOwnProfile = authUser && profileUser.id === authUser.id;
+  const isOwnProfile = profileUser.id === currentUser.id || (authUser && profileUser.id === authUser.id);
   const userPosts = posts.filter((p) => p.author.id === profileUser.id);
   const joinDate = new Date(profileUser.joinedAt).toLocaleDateString("en-US", {
     month: "long",
