@@ -56,25 +56,32 @@ function rowToComment(row: CommentRow, likedIds: Set<string>): CommentData {
   };
 }
 
-export async function fetchComments(postId: string, currentUserId?: string): Promise<CommentData[]> {
+export async function fetchComments(
+  postId: string,
+  currentUserId?: string
+): Promise<CommentData[]> {
   const { data, error } = await supabase
     .from("comments")
-    .select(`
-      id, post_id, user_id, parent_id, content, likes_count, created_at,
-      user_profiles (id, username, display_name, avatar_url)
-    `)
+    .select(
+      `id, post_id, user_id, parent_id, content, likes_count, created_at,
+      user_profiles (id, username, display_name, avatar_url)`
+    )
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error("fetchComments error:", error);
+    throw error;
+  }
 
-  // Fetch which ones the current user liked
+  // Fetch liked comment IDs for the current user
   let likedIds = new Set<string>();
   if (currentUserId) {
-    const { data: likes } = await supabase
+    const { data: likes, error: likeErr } = await supabase
       .from("comment_likes")
       .select("comment_id")
       .eq("user_id", currentUserId);
+    if (likeErr) console.error("fetchCommentLikes error:", likeErr);
     if (likes) likedIds = new Set(likes.map((l) => l.comment_id));
   }
 
@@ -114,17 +121,28 @@ export async function addComment(
       content: content.trim(),
       parent_id: parentId ?? null,
     })
-    .select(`id, post_id, user_id, parent_id, content, likes_count, created_at,
-      user_profiles (id, username, display_name, avatar_url)`)
+    .select(
+      `id, post_id, user_id, parent_id, content, likes_count, created_at,
+      user_profiles (id, username, display_name, avatar_url)`
+    )
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("addComment error:", error);
+    throw error;
+  }
   return data as unknown as CommentRow;
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
-  const { error } = await supabase.from("comments").delete().eq("id", commentId);
-  if (error) throw error;
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+  if (error) {
+    console.error("deleteComment error:", error);
+    throw error;
+  }
 }
 
 export async function toggleCommentLike(
@@ -133,40 +151,46 @@ export async function toggleCommentLike(
   currentlyLiked: boolean
 ): Promise<number> {
   if (currentlyLiked) {
-    await supabase
+    // Remove like
+    const { error: delErr } = await supabase
       .from("comment_likes")
       .delete()
       .eq("comment_id", commentId)
       .eq("user_id", userId);
+    if (delErr) throw delErr;
 
-    const { data } = await supabase
-      .from("comments")
-      .update({ likes_count: supabase.rpc ? undefined : undefined })
-      .eq("id", commentId)
-      .select("likes_count")
-      .single();
-
-    // Decrement manually
-    const { data: current } = await supabase
+    const { data, error } = await supabase
       .from("comments")
       .select("likes_count")
       .eq("id", commentId)
       .single();
+    if (error) throw error;
 
-    const newCount = Math.max(0, (current?.likes_count ?? 1) - 1);
-    await supabase.from("comments").update({ likes_count: newCount }).eq("id", commentId);
+    const newCount = Math.max(0, (data?.likes_count ?? 1) - 1);
+    await supabase
+      .from("comments")
+      .update({ likes_count: newCount })
+      .eq("id", commentId);
     return newCount;
   } else {
-    await supabase.from("comment_likes").insert({ comment_id: commentId, user_id: userId });
+    // Add like
+    const { error: insErr } = await supabase
+      .from("comment_likes")
+      .insert({ comment_id: commentId, user_id: userId });
+    if (insErr) throw insErr;
 
-    const { data: current } = await supabase
+    const { data, error } = await supabase
       .from("comments")
       .select("likes_count")
       .eq("id", commentId)
       .single();
+    if (error) throw error;
 
-    const newCount = (current?.likes_count ?? 0) + 1;
-    await supabase.from("comments").update({ likes_count: newCount }).eq("id", commentId);
+    const newCount = (data?.likes_count ?? 0) + 1;
+    await supabase
+      .from("comments")
+      .update({ likes_count: newCount })
+      .eq("id", commentId);
     return newCount;
   }
 }

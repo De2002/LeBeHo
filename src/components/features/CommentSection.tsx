@@ -35,15 +35,16 @@ function CommentNode({
   const maxDepth = 3;
 
   return (
-    <div className={`flex gap-3 ${depth > 0 ? "mt-3" : "mt-5"}`}>
-      {/* Avatar */}
+    <div className={`flex gap-3 ${depth > 0 ? "mt-3" : "mt-4"}`}>
+      {/* Avatar + thread line */}
       <div className="flex flex-col items-center flex-shrink-0">
         <img
           src={comment.author.avatar}
           alt={comment.author.displayName}
-          className={`rounded-full object-cover flex-shrink-0 ${depth === 0 ? "w-9 h-9" : "w-7 h-7"}`}
+          className={`rounded-full object-cover flex-shrink-0 ${
+            depth === 0 ? "w-8 h-8" : "w-6 h-6"
+          }`}
         />
-        {/* Thread line */}
         {hasReplies && showReplies && (
           <div className="w-px flex-1 mt-2 bg-[hsl(var(--border))]" />
         )}
@@ -63,13 +64,12 @@ function CommentNode({
         </div>
 
         {/* Text */}
-        <p className="text-[15px] text-[hsl(var(--text-secondary))] leading-relaxed whitespace-pre-wrap break-words">
+        <p className="text-[14px] text-[hsl(var(--text-secondary))] leading-relaxed whitespace-pre-wrap break-words">
           {comment.content}
         </p>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 mt-2 flex-wrap">
-          {/* Like */}
+        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           <button
             onClick={() => onLike(comment.id)}
             className={`inline-flex items-center gap-1 text-xs transition-colors ${
@@ -78,22 +78,20 @@ function CommentNode({
                 : "text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))]"
             }`}
           >
-            <ThumbsUp size={12} className={comment.userLiked ? "fill-current" : ""} />
+            <ThumbsUp size={11} className={comment.userLiked ? "fill-current" : ""} />
             <span>({comment.likesCount})</span>
           </button>
 
-          {/* Reply */}
           {currentUserId && depth < maxDepth && (
             <button
               onClick={() => onReply(comment.id, comment.author.displayName)}
               className="inline-flex items-center gap-1 text-xs text-[hsl(var(--text-muted))] hover:text-[hsl(var(--accent))] transition-colors"
             >
-              <Reply size={12} />
+              <Reply size={11} />
               reply
             </button>
           )}
 
-          {/* Delete */}
           {isOwn && (
             <button
               onClick={() => onDelete(comment.id)}
@@ -109,12 +107,14 @@ function CommentNode({
         {hasReplies && (
           <button
             onClick={() => setShowReplies((v) => !v)}
-            className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-[hsl(var(--accent))] hover:underline"
+            className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-[hsl(var(--accent))] hover:underline"
           >
-            {showReplies ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {showReplies ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             {showReplies
               ? "Hide replies"
-              : `Show ${comment.replies.length} repl${comment.replies.length === 1 ? "y" : "ies"}`}
+              : `Show ${comment.replies.length} repl${
+                  comment.replies.length === 1 ? "y" : "ies"
+                }`}
           </button>
         )}
 
@@ -171,9 +171,13 @@ function Composer({ placeholder, onSubmit, autoFocus, onCancel, compact, avatar 
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`flex gap-2.5 ${compact ? "items-start" : "items-start"}`}>
+    <form onSubmit={handleSubmit} className="flex gap-2.5 items-start">
       {avatar && !compact && (
-        <img src={avatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5" />
+        <img
+          src={avatar}
+          alt=""
+          className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5"
+        />
       )}
       <div className="flex-1 flex flex-col gap-2">
         <textarea
@@ -184,12 +188,19 @@ function Composer({ placeholder, onSubmit, autoFocus, onCancel, compact, avatar 
           rows={compact ? 2 : 3}
           className="lb-textarea text-sm resize-none w-full"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(e);
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
           }}
         />
         <div className="flex items-center gap-2 justify-end">
           {onCancel && (
-            <button type="button" onClick={onCancel} className="lb-btn-ghost text-xs py-1 px-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="lb-btn-ghost text-xs py-1 px-2"
+            >
               Cancel
             </button>
           )}
@@ -198,7 +209,11 @@ function Composer({ placeholder, onSubmit, autoFocus, onCancel, compact, avatar 
             disabled={!text.trim() || submitting}
             className="lb-btn-primary text-xs py-1.5 px-3 disabled:opacity-40 inline-flex items-center gap-1.5"
           >
-            {submitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+            {submitting ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Send size={11} />
+            )}
             {compact ? "Reply" : "Comment"}
           </button>
         </div>
@@ -211,15 +226,26 @@ function Composer({ placeholder, onSubmit, autoFocus, onCancel, compact, avatar 
 interface CommentSectionProps {
   postId: string;
   initialCount?: number;
+  onCountChange?: (count: number) => void;
 }
 
-export default function CommentSection({ postId, initialCount = 0 }: CommentSectionProps) {
+export default function CommentSection({
+  postId,
+  initialCount = 0,
+  onCountChange,
+}: CommentSectionProps) {
   const { user } = useAuth();
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [replyTarget, setReplyTarget] = useState<{ id: string; author: string } | null>(null);
+  const [replyTarget, setReplyTarget] = useState<{
+    id: string;
+    author: string;
+  } | null>(null);
   const replyRef = useRef<HTMLDivElement>(null);
+
+  const countAll = (list: CommentData[]): number =>
+    list.reduce((acc, c) => acc + 1 + countAll(c.replies), 0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -227,6 +253,7 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
     try {
       const data = await fetchComments(postId, user?.id);
       setComments(data);
+      onCountChange?.(countAll(data));
     } catch (err) {
       console.error("Failed to load comments:", err);
       setError("Failed to load comments.");
@@ -239,10 +266,16 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
     load();
   }, [load]);
 
-  // Scroll to reply composer when a reply is triggered
   useEffect(() => {
     if (replyTarget) {
-      setTimeout(() => replyRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+      setTimeout(
+        () =>
+          replyRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          }),
+        80
+      );
     }
   }, [replyTarget]);
 
@@ -251,7 +284,9 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
     try {
       await addComment(postId, user.id, content);
       await load();
+      toast.success("Comment posted.");
     } catch (err) {
+      console.error("addComment failed:", err);
       toast.error("Failed to post comment.");
       throw err;
     }
@@ -263,7 +298,9 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
       await addComment(postId, user.id, content, replyTarget.id);
       setReplyTarget(null);
       await load();
+      toast.success("Reply posted.");
     } catch (err) {
+      console.error("addReply failed:", err);
       toast.error("Failed to post reply.");
       throw err;
     }
@@ -271,12 +308,15 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
 
   const handleDelete = async (commentId: string) => {
     if (!user) return;
-    // Optimistic
     const removeFromTree = (list: CommentData[]): CommentData[] =>
       list
         .filter((c) => c.id !== commentId)
         .map((c) => ({ ...c, replies: removeFromTree(c.replies) }));
-    setComments((prev) => removeFromTree(prev));
+    setComments((prev) => {
+      const updated = removeFromTree(prev);
+      onCountChange?.(countAll(updated));
+      return updated;
+    });
     try {
       await deleteComment(commentId);
     } catch {
@@ -290,18 +330,7 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
       toast.error("Sign in to like comments.");
       return;
     }
-    // Optimistic update
-    const updateTree = (list: CommentData[]): CommentData[] =>
-      list.map((c) => {
-        if (c.id === commentId) {
-          const liked = !c.userLiked;
-          return { ...c, userLiked: liked, likesCount: liked ? c.likesCount + 1 : Math.max(0, c.likesCount - 1) };
-        }
-        return { ...c, replies: updateTree(c.replies) };
-      });
-    setComments((prev) => updateTree(prev));
 
-    // Find current liked state
     const findComment = (list: CommentData[]): CommentData | null => {
       for (const c of list) {
         if (c.id === commentId) return c;
@@ -313,33 +342,38 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
     const target = findComment(comments);
     if (!target) return;
 
+    // Optimistic update
+    const updateTree = (list: CommentData[]): CommentData[] =>
+      list.map((c) => {
+        if (c.id === commentId) {
+          const liked = !c.userLiked;
+          return {
+            ...c,
+            userLiked: liked,
+            likesCount: liked
+              ? c.likesCount + 1
+              : Math.max(0, c.likesCount - 1),
+          };
+        }
+        return { ...c, replies: updateTree(c.replies) };
+      });
+    setComments((prev) => updateTree(prev));
+
     try {
       await toggleCommentLike(commentId, user.id, target.userLiked ?? false);
-    } catch {
-      // Revert
-      load();
+    } catch (err) {
+      console.error("toggleLike failed:", err);
+      load(); // revert on failure
     }
   };
 
-  const totalCount = comments.reduce((acc, c) => acc + 1 + c.replies.length, 0);
+  const totalCount = countAll(comments);
 
   return (
-    <div className="mt-8 pt-6 border-t border-[hsl(var(--border))]">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-[hsl(var(--text-primary))]">
-          Discussion
-          {totalCount > 0 && (
-            <span className="ml-2 text-xs font-normal text-[hsl(var(--text-muted))]">
-              {totalCount} comment{totalCount !== 1 ? "s" : ""}
-            </span>
-          )}
-        </h2>
-      </div>
-
-      {/* Composer for top-level comment */}
+    <div className="pt-4">
+      {/* Top-level composer */}
       {user ? (
-        <div className="mb-6">
+        <div className="mb-5">
           <Composer
             placeholder="Share your thoughts…"
             onSubmit={handleAddComment}
@@ -347,8 +381,8 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
           />
         </div>
       ) : (
-        <div className="mb-6 px-4 py-3 border border-[hsl(var(--border))] rounded-sm text-sm text-[hsl(var(--text-muted))]">
-          <span>Sign in to join the discussion.</span>
+        <div className="mb-5 px-4 py-3 border border-[hsl(var(--border))] rounded-sm text-sm text-[hsl(var(--text-muted))]">
+          Sign in to join the discussion.
         </div>
       )}
 
@@ -363,19 +397,21 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
       {!loading && error && (
         <div className="text-center py-6">
           <p className="text-sm text-[hsl(var(--text-muted))] mb-2">{error}</p>
-          <button onClick={load} className="lb-btn-outline text-xs">Retry</button>
+          <button onClick={load} className="lb-btn-outline text-xs">
+            Retry
+          </button>
         </div>
       )}
 
       {/* Empty */}
       {!loading && !error && comments.length === 0 && (
         <p className="text-sm text-[hsl(var(--text-muted))] py-4 text-center">
-          No comments yet. Be the first to say something.
+          No comments yet. Be the first.
         </p>
       )}
 
       {/* Comment tree */}
-      {!loading && !error && (
+      {!loading && !error && comments.length > 0 && (
         <div className="divide-y divide-[hsl(var(--border-subtle))]">
           {comments.map((comment) => (
             <div key={comment.id} className="pb-4">
@@ -399,7 +435,10 @@ export default function CommentSection({ postId, initialCount = 0 }: CommentSect
           className="mt-4 pt-4 border-t border-[hsl(var(--border))] bg-[hsl(var(--surface))] rounded-sm p-3"
         >
           <p className="text-xs text-[hsl(var(--text-muted))] mb-2 font-medium">
-            Replying to <span className="text-[hsl(var(--text-primary))]">{replyTarget.author}</span>
+            Replying to{" "}
+            <span className="text-[hsl(var(--text-primary))]">
+              {replyTarget.author}
+            </span>
           </p>
           <Composer
             placeholder={`Reply to ${replyTarget.author}…`}

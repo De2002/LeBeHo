@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare } from "lucide-react";
 import { MOCK_POSTS } from "@/lib/mockData";
 import { timeAgo, formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
@@ -9,14 +10,16 @@ import ReactionBar from "@/components/features/ReactionBar";
 import SourceList from "@/components/features/SourceList";
 import ShareButton from "@/components/features/ShareButton";
 import FollowButton from "@/components/features/FollowButton";
-import CommentSection from "@/components/features/CommentSection";
+import CommentSheet from "@/components/features/CommentSheet";
 import { usePosts } from "@/hooks/usePosts";
-import { Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare } from "lucide-react";
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { posts, react, toggleDiscussion } = usePosts();
+
+  const [commentSheetOpen, setCommentSheetOpen] = useState(false);
+  const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null);
 
   const post = posts.find((p) => p.id === id) ?? MOCK_POSTS.find((p) => p.id === id);
 
@@ -30,6 +33,8 @@ export default function PostPage() {
       </div>
     );
   }
+
+  const displayCount = liveCommentCount ?? post.commentsCount;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
@@ -62,8 +67,7 @@ export default function PostPage() {
             </span>
           </div>
           <p className="text-xs text-[hsl(var(--text-muted))] mt-0.5">
-            @{post.author.username} · {formatCount(post.author.followersCount)}{" "}
-            followers
+            @{post.author.username} · {formatCount(post.author.followersCount)} followers
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
@@ -111,7 +115,7 @@ export default function PostPage() {
       {/* Sources */}
       <SourceList sources={post.sources} />
 
-      {/* More */}
+      {/* More link */}
       {post.moreLink && (
         <a
           href={post.moreLink}
@@ -127,32 +131,46 @@ export default function PostPage() {
       {/* Action bar */}
       <div className="flex items-center gap-2 flex-wrap mt-6 pt-4 border-t border-[hsl(var(--border))]">
         <ReactionBar post={post} onReact={react} />
+
         <div className="w-px h-4 bg-[hsl(var(--border))] mx-1" />
-        <span className="lb-btn-ghost cursor-default">
+
+        {/* Comment button — opens sheet */}
+        <button
+          onClick={() => setCommentSheetOpen(true)}
+          className="lb-btn-ghost"
+          aria-label="Open comments"
+        >
           <MessageSquare size={14} />
-          <span className="text-xs">{post.commentsCount > 0 ? post.commentsCount : ""}</span>
-        </span>
+          {displayCount > 0 && (
+            <span className="text-xs">{displayCount}</span>
+          )}
+        </button>
+
         <button
           onClick={() => toggleDiscussion(post.id)}
           className={`lb-btn-ghost ${
             post.isFollowingDiscussion ? "text-[hsl(var(--accent))]" : ""
           }`}
         >
-          {post.isFollowingDiscussion ? (
-            <BellOff size={14} />
-          ) : (
-            <Bell size={14} />
-          )}
-          {post.isFollowingDiscussion
-            ? "Following discussion"
-            : "Follow discussion"}
+          {post.isFollowingDiscussion ? <BellOff size={14} /> : <Bell size={14} />}
+          <span className="hidden sm:inline">
+            {post.isFollowingDiscussion ? "Following discussion" : "Follow discussion"}
+          </span>
         </button>
+
         <div className="ml-auto">
           <ShareButton title={post.mainPoint} text={post.mainPoint} />
         </div>
       </div>
 
-      <CommentSection postId={post.id} initialCount={post.commentsCount} />
+      {/* Slide-up comment sheet */}
+      <CommentSheet
+        open={commentSheetOpen}
+        onClose={() => setCommentSheetOpen(false)}
+        postId={post.id}
+        commentsCount={displayCount}
+        onCountChange={setLiveCommentCount}
+      />
     </div>
   );
 }
