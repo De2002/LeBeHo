@@ -1,6 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
 import { MOCK_POSTS } from "@/lib/mockData";
 import { timeAgo, formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
@@ -10,19 +9,9 @@ import ReactionBar from "@/components/features/ReactionBar";
 import SourceList from "@/components/features/SourceList";
 import ShareButton from "@/components/features/ShareButton";
 import FollowButton from "@/components/features/FollowButton";
+import CommentSection from "@/components/features/CommentSection";
 import { usePosts } from "@/hooks/usePosts";
 import { Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare } from "lucide-react";
-
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    __semio__params?: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    __semio__gc_sidePanel_graphlogin?: (params: any) => void;
-    __semio__helpers_counter?: (siteId: string) => void;
-    graphcomment_counter?: () => void;
-  }
-}
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,66 +19,6 @@ export default function PostPage() {
   const { posts, react, toggleDiscussion } = usePosts();
 
   const post = posts.find((p) => p.id === id) ?? MOCK_POSTS.find((p) => p.id === id);
-
-  // Load GraphComment side-panel + counter
-  useEffect(() => {
-    if (!id) return;
-
-    // Remove any previously injected instance
-    const existing = document.getElementById("gc-script");
-    if (existing) existing.remove();
-
-    window.__semio__params = {
-      graphcommentId: "LeBeHo",
-      behaviour: { uid: id },
-      sidePanel: {
-        width: 480,
-        button: {
-          background: "#0a0a0a",
-          color: "#ffffff",
-          label: "Read & React",
-        },
-        visible: true,
-      },
-    };
-
-    const gc = document.createElement("script");
-    gc.id = "gc-script";
-    gc.type = "text/javascript";
-    gc.async = true;
-    gc.defer = true;
-    gc.src =
-      "https://integration.graphcomment.com/gc_sidePanel_graphlogin.js?" +
-      Date.now();
-    gc.onload = () => {
-      if (
-        typeof window.__semio__gc_sidePanel_graphlogin === "function" &&
-        window.__semio__params
-      ) {
-        window.__semio__gc_sidePanel_graphlogin(window.__semio__params);
-      }
-    };
-    (document.head || document.body).appendChild(gc);
-
-    // Load counter script if not already present
-    if (!document.getElementById("gc-counter-script")) {
-      const cs = document.createElement("script");
-      cs.id = "gc-counter-script";
-      cs.type = "text/javascript";
-      cs.async = true;
-      cs.defer = true;
-      cs.src = "https://integration.graphcomment.com/helpers_counter.js?" + Date.now();
-      cs.onload = () => window.__semio__helpers_counter?.("LeBeHo");
-      (document.head || document.body).appendChild(cs);
-    } else {
-      window.graphcomment_counter?.();
-    }
-
-    return () => {
-      const s = document.getElementById("gc-script");
-      if (s) s.remove();
-    };
-  }, [id]);
 
   if (!post) {
     return (
@@ -201,7 +130,7 @@ export default function PostPage() {
         <div className="w-px h-4 bg-[hsl(var(--border))] mx-1" />
         <span className="lb-btn-ghost cursor-default">
           <MessageSquare size={14} />
-          <span className="gc-counter" data-url={`${window.location.origin}/post/${post.id}`} />
+          <span className="text-xs">{post.commentsCount > 0 ? post.commentsCount : ""}</span>
         </span>
         <button
           onClick={() => toggleDiscussion(post.id)}
@@ -223,13 +152,7 @@ export default function PostPage() {
         </div>
       </div>
 
-      {/* GraphComment discussion panel */}
-      <div className="mt-8 pt-6 border-t border-[hsl(var(--border))]">
-        <h2 className="text-sm font-semibold text-[hsl(var(--text-primary))] mb-4">
-          Discussion
-        </h2>
-        <div id="graphcomment" />
-      </div>
+      <CommentSection postId={post.id} initialCount={post.commentsCount} />
     </div>
   );
 }

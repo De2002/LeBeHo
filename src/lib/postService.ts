@@ -12,6 +12,7 @@ export interface PostRow {
   image_url: string | null;
   sources: Source[];
   reactions: { positive: number; negative: number };
+  comments_count: number;
   created_at: string;
   user_profiles: {
     id: string;
@@ -69,7 +70,7 @@ export function rowToPost(row: PostRow, userReactions?: Record<string, "positive
         userReacted: userReactions?.[row.id] === "negative",
       },
     },
-    commentsCount: 0,
+    commentsCount: row.comments_count ?? 0,
     comments: [],
     createdAt: row.created_at,
     isFollowingDiscussion: followedDiscussions?.includes(row.id) ?? false,
@@ -96,6 +97,7 @@ export async function fetchPosts(opts?: {
       image_url,
       sources,
       reactions,
+      comments_count,
       created_at,
       user_profiles (
         id,
