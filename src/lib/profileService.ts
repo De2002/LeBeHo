@@ -73,19 +73,22 @@ export async function uploadAvatar(
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${userId}/avatar.${ext}`;
 
-  // Fetch as blob for upload
-  const arrayBuffer = await file.arrayBuffer();
-  const blob = new Blob([arrayBuffer], { type: file.type });
+  console.log("[uploadAvatar] uploading:", path, file.type, file.size);
 
-  const { error } = await supabase.storage
+  // Pass File directly — avoids arrayBuffer memory issues on mobile
+  const { data: uploadData, error } = await supabase.storage
     .from("avatars")
-    .upload(path, blob, {
+    .upload(path, file, {
       upsert: true,
       contentType: file.type,
     });
 
-  if (error) throw error;
+  if (error) {
+    console.error("[uploadAvatar] storage error:", error);
+    throw new Error(error.message);
+  }
 
+  console.log("[uploadAvatar] success:", uploadData?.path);
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
   // Bust cache with a timestamp param
   return `${data.publicUrl}?t=${Date.now()}`;

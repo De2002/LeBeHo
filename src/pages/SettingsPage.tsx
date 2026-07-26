@@ -111,8 +111,9 @@ export default function SettingsPage() {
         setAvatarPreview(url);
         toast.success("Avatar uploaded.");
       } catch (err: unknown) {
-        console.error("Avatar upload failed:", err);
-        toast.error("Avatar upload failed.");
+        const msg = (err as Error).message || "Unknown error";
+        console.error("Avatar upload failed:", msg);
+        toast.error(`Avatar upload failed: ${msg}`);
         setAvatarPreview(avatarUrl); // revert
       } finally {
         setAvatarUploading(false);
