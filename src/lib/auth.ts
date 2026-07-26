@@ -1,88 +1,65 @@
 import type { User } from "@/types";
 
-const STORAGE_KEY = "lebehо_auth_user";
-const FOLLOWING_KEY = "lebehо_following";
-const THEME_KEY = "lebehо_theme";
-const SIGNED_IN_KEY = "lebehо_signed_in";
-const INTRO_DISMISSED_KEY = "lebehо_intro_dismissed";
-
+// Fallback placeholder user (used only when no auth session exists)
 export const CURRENT_USER: User = {
-  id: "me",
-  username: "you",
-  displayName: "Your Name",
+  id: "guest",
+  username: "guest",
+  displayName: "Guest",
   avatar:
-    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop&crop=faces",
-  bio: "Sharing honest thoughts and perspectives.",
+    "https://ui-avatars.com/api/?name=Guest&background=0a0a0a&color=ffffff&size=80",
+  bio: "",
   followersCount: 0,
   followingCount: 0,
   postsCount: 0,
-  trustScore: 60,
+  trustScore: 0,
   joinedAt: new Date().toISOString(),
   topics: [],
 };
 
+// In-memory following set — no localStorage
+const followingSet = new Set<string>();
+
 export function getStoredUser(): User {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as User;
-  } catch {}
   return CURRENT_USER;
 }
 
-export function saveUser(user: User): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+export function saveUser(_user: User): void {
+  // No-op: user data is managed by Supabase auth
 }
 
 export function getFollowing(): string[] {
-  try {
-    const stored = localStorage.getItem(FOLLOWING_KEY);
-    if (stored) return JSON.parse(stored) as string[];
-  } catch {}
-  return ["u2", "u4"];
+  return Array.from(followingSet);
 }
 
 export function toggleFollow(userId: string): string[] {
-  const following = getFollowing();
-  const idx = following.indexOf(userId);
-  if (idx >= 0) {
-    following.splice(idx, 1);
+  if (followingSet.has(userId)) {
+    followingSet.delete(userId);
   } else {
-    following.push(userId);
+    followingSet.add(userId);
   }
-  localStorage.setItem(FOLLOWING_KEY, JSON.stringify(following));
-  return following;
+  return Array.from(followingSet);
 }
 
 export function isSignedIn(): boolean {
-  try {
-    return localStorage.getItem(SIGNED_IN_KEY) === "true";
-  } catch {}
-  return false;
+  return false; // Real auth state lives in useAuth / Supabase
 }
 
 export function signIn(): void {
-  localStorage.setItem(SIGNED_IN_KEY, "true");
+  // No-op
 }
 
 export function isIntroDismissed(): boolean {
-  try {
-    return localStorage.getItem(INTRO_DISMISSED_KEY) === "true";
-  } catch {}
   return false;
 }
 
 export function dismissIntro(): void {
-  localStorage.setItem(INTRO_DISMISSED_KEY, "true");
+  // No-op
 }
 
 export function getTheme(): "light" | "dark" {
-  try {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "dark" || stored === "light") return stored;
-  } catch {}
   return "light";
 }
 
-export function saveTheme(theme: "light" | "dark"): void {
-  localStorage.setItem(THEME_KEY, theme);
+export function saveTheme(_theme: "light" | "dark"): void {
+  // No-op: theme is managed by useTheme hook
 }

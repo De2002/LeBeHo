@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare } from "lucide-react";
-import { MOCK_POSTS } from "@/lib/mockData";
+import { ArrowLeft, Bell, BellOff, ArrowUpRight, Star, Flame, MessageSquare, Loader2 } from "lucide-react";
 import { timeAgo, formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
 import PostTypeBadge from "@/components/features/PostTypeBadge";
@@ -12,16 +11,47 @@ import ShareButton from "@/components/features/ShareButton";
 import FollowButton from "@/components/features/FollowButton";
 import CommentSheet from "@/components/features/CommentSheet";
 import { usePosts } from "@/hooks/usePosts";
+import { fetchPostById, rowToPost } from "@/lib/postService";
+import { fetchUserReactions } from "@/lib/reactionService";
+import { useAuth } from "@/hooks/useAuth";
+import type { Post } from "@/types";
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { posts, react, toggleDiscussion } = usePosts();
+  const { user } = useAuth();
+  const { react, toggleDiscussion } = usePosts();
 
+  const [post, setPost] = useState<Post | null>(null);
+  const [loadingPost, setLoadingPost] = useState(true);
   const [commentSheetOpen, setCommentSheetOpen] = useState(false);
   const [liveCommentCount, setLiveCommentCount] = useState<number | null>(null);
 
-  const post = posts.find((p) => p.id === id) ?? MOCK_POSTS.find((p) => p.id === id);
+  useEffect(() => {
+    if (!id) return;
+    setLoadingPost(true);
+    fetchPostById(id).then(async (row) => {
+      if (!row) {
+        setPost(null);
+        setLoadingPost(false);
+        return;
+      }
+      let userReactions: Record<string, "positive" | "negative"> = {};
+      if (user?.id) {
+        userReactions = await fetchUserReactions(user.id, [row.id]);
+      }
+      setPost(rowToPost(row, userReactions));
+      setLoadingPost(false);
+    });
+  }, [id, user?.id]);
+
+  if (loadingPost) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 flex justify-center">
+        <Loader2 size={20} className="animate-spin text-[hsl(var(--text-muted))]" />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -109,11 +139,12 @@ export default function PostPage() {
       )}
 
       {/* Explanation */}
-      <div className="mb-6">
-        <p className="text-[16px] text-[hsl(var(--text-secondary))] leading-relaxed whitespace-pre-wrap">
-          {post.explanation}
-        </p>
-      </div>
+      {post.explanation && (
+        <div
+          className="mb-6 text-[16px] text-[hsl(var(--text-secondary))] leading-relaxed prose prose-neutral max-w-none"
+          dangerouslySetInnerHTML={{ __html: post.explanation }}
+        />
+      )}
 
       {/* Sources */}
       <SourceList sources={post.sources} />

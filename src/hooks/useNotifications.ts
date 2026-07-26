@@ -113,22 +113,9 @@ const MOCK_NOTIFICATIONS: AppNotification[] = [
   },
 ];
 
-const STORAGE_KEY = "lebehо_notif_read";
-
-function getReadIds(): Set<string> {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return new Set(JSON.parse(stored) as string[]);
-  } catch {}
-  return new Set();
-}
-
-function saveReadIds(ids: Set<string>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
-}
-
+// In-memory read IDs — no localStorage
 export function useNotifications() {
-  const [readIds, setReadIds] = useState<Set<string>>(getReadIds);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set<string>());
 
   const notifications: AppNotification[] = MOCK_NOTIFICATIONS.map((n) => ({
     ...n,
@@ -138,18 +125,11 @@ export function useNotifications() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllRead = useCallback(() => {
-    const allIds = new Set(MOCK_NOTIFICATIONS.map((n) => n.id));
-    saveReadIds(allIds);
-    setReadIds(allIds);
+    setReadIds(new Set(MOCK_NOTIFICATIONS.map((n) => n.id)));
   }, []);
 
   const markRead = useCallback((id: string) => {
-    setReadIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      saveReadIds(next);
-      return next;
-    });
+    setReadIds((prev) => new Set([...prev, id]));
   }, []);
 
   return { notifications, unreadCount, markAllRead, markRead };

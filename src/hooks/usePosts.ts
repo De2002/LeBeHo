@@ -5,14 +5,11 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Post, Category } from "@/types";
 import { toast } from "sonner";
 
-const DISCUSSIONS_KEY = "lebehо_discussions";
+// In-memory discussion follow set (no localStorage)
+const discussionSet = new Set<string>();
 
 function getStoredDiscussions(): string[] {
-  try {
-    const stored = localStorage.getItem(DISCUSSIONS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return [];
+  return Array.from(discussionSet);
 }
 
 export function usePosts(opts?: { category?: Category | null; userId?: string }) {
@@ -119,16 +116,15 @@ export function usePosts(opts?: { category?: Category | null; userId?: string })
   );
 
   const toggleDiscussion = useCallback((postId: string) => {
-    const discussions = getStoredDiscussions();
-    const idx = discussions.indexOf(postId);
-    if (idx >= 0) discussions.splice(idx, 1);
-    else discussions.push(postId);
-    localStorage.setItem(DISCUSSIONS_KEY, JSON.stringify(discussions));
+    if (discussionSet.has(postId)) {
+      discussionSet.delete(postId);
+    } else {
+      discussionSet.add(postId);
+    }
+    const following = discussionSet.has(postId);
     setPosts((prev) =>
       prev.map((p) =>
-        p.id === postId
-          ? { ...p, isFollowingDiscussion: discussions.includes(postId) }
-          : p
+        p.id === postId ? { ...p, isFollowingDiscussion: following } : p
       )
     );
   }, []);
