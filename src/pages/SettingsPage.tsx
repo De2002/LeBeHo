@@ -12,6 +12,12 @@ import {
   Moon,
   Sun,
   Monitor,
+  Globe,
+  Twitter,
+  Linkedin,
+  Instagram,
+  Briefcase,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +33,7 @@ import { CATEGORIES } from "@/constants";
 import { supabase } from "@/lib/supabase";
 import type { Category } from "@/types";
 
-type SettingsSection = "profile" | "topics" | "appearance";
+type SettingsSection = "profile" | "topics" | "appearance" | "social";
 
 export default function SettingsPage() {
   const { user, login } = useAuth();
@@ -47,6 +53,11 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
   const [topics, setTopics] = useState<Category[]>([]);
+  const [profession, setProfession] = useState("");
+  const [website, setWebsite] = useState("");
+  const [twitter, setTwitter] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [instagram, setInstagram] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<HTMLDivElement>(null);
@@ -73,6 +84,11 @@ export default function SettingsPage() {
           setAvatarUrl(profile.avatar_url || user.avatar || "");
           setAvatarPreview(profile.avatar_url || user.avatar || "");
           setTopics((profile.topics as Category[]) || []);
+          setProfession(profile.profession || "");
+          setWebsite(profile.website || "");
+          setTwitter(profile.twitter || "");
+          setLinkedin(profile.linkedin || "");
+          setInstagram(profile.instagram || "");
         } else {
           // No profile row yet — seed from auth metadata
           setDisplayName(user.displayName || "");
@@ -160,6 +176,11 @@ export default function SettingsPage() {
       bio: bio.trim(),
       avatar_url: avatarUrl,
       topics,
+      profession: profession.trim(),
+      website: website.trim(),
+      twitter: twitter.trim().replace(/^@/, ""),
+      linkedin: linkedin.trim().replace(/^@/, ""),
+      instagram: instagram.trim().replace(/^@/, ""),
     };
 
     try {
@@ -187,6 +208,7 @@ export default function SettingsPage() {
   // ── Sections nav ──────────────────────────────────────────────────────
   const NAV: { id: SettingsSection; label: string; icon: typeof UserCircle }[] = [
     { id: "profile", label: "Profile", icon: UserCircle },
+    { id: "social", label: "Social", icon: Link2 },
     { id: "topics", label: "Topics", icon: Tag },
     { id: "appearance", label: "Appearance", icon: Moon },
   ];
@@ -430,6 +452,104 @@ export default function SettingsPage() {
                     <p className="text-[10px] text-[hsl(var(--text-muted))] mt-1">
                       {bio.length}/200
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ── SOCIAL SECTION ───────────────────────────────────── */}
+              {section === "social" && (
+                <div className="space-y-8">
+                  {/* Profession */}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))] mb-4 flex items-center gap-2">
+                      <Briefcase size={11} />
+                      Profession
+                    </p>
+                    <input
+                      type="text"
+                      value={profession}
+                      onChange={(e) => setProfession(e.target.value.slice(0, 80))}
+                      placeholder="e.g. Software Engineer, Journalist, Researcher…"
+                      className="lb-input"
+                    />
+                    <p className="text-[10px] text-[hsl(var(--text-muted))] mt-1">{profession.length}/80 · Shown under your name on your profile.</p>
+                  </div>
+
+                  <div className="border-t border-[hsl(var(--border-subtle))]" />
+
+                  {/* Links */}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))] mb-5 flex items-center gap-2">
+                      <Globe size={11} />
+                      Website &amp; Social Handles
+                    </p>
+
+                    <div className="space-y-5">
+                      {/* Website */}
+                      <div>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))] block mb-1.5 flex items-center gap-1.5">
+                          <Globe size={10} /> Website
+                        </label>
+                        <input
+                          type="url"
+                          value={website}
+                          onChange={(e) => setWebsite(e.target.value.slice(0, 200))}
+                          placeholder="https://yoursite.com"
+                          className="lb-input"
+                        />
+                      </div>
+
+                      {/* Twitter / X */}
+                      <div>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))] block mb-1.5 flex items-center gap-1.5">
+                          <Twitter size={10} /> X / Twitter
+                        </label>
+                        <div className="flex items-center border-b border-[hsl(var(--border))] focus-within:border-[hsl(var(--text-primary))] transition-colors">
+                          <span className="text-sm text-[hsl(var(--text-muted))] pb-2 pr-0.5 select-none">@</span>
+                          <input
+                            type="text"
+                            value={twitter}
+                            onChange={(e) => setTwitter(e.target.value.replace(/^@/, "").replace(/\s/g, "").slice(0, 50))}
+                            placeholder="yourhandle"
+                            className="flex-1 bg-transparent text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))] py-2 text-sm outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* LinkedIn */}
+                      <div>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))] block mb-1.5 flex items-center gap-1.5">
+                          <Linkedin size={10} /> LinkedIn
+                        </label>
+                        <div className="flex items-center border-b border-[hsl(var(--border))] focus-within:border-[hsl(var(--text-primary))] transition-colors">
+                          <span className="text-[11px] text-[hsl(var(--text-muted))] pb-2 pr-1 select-none whitespace-nowrap">linkedin.com/in/</span>
+                          <input
+                            type="text"
+                            value={linkedin}
+                            onChange={(e) => setLinkedin(e.target.value.replace(/^@/, "").replace(/\s/g, "").slice(0, 80))}
+                            placeholder="yourprofile"
+                            className="flex-1 bg-transparent text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))] py-2 text-sm outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Instagram */}
+                      <div>
+                        <label className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))] block mb-1.5 flex items-center gap-1.5">
+                          <Instagram size={10} /> Instagram
+                        </label>
+                        <div className="flex items-center border-b border-[hsl(var(--border))] focus-within:border-[hsl(var(--text-primary))] transition-colors">
+                          <span className="text-sm text-[hsl(var(--text-muted))] pb-2 pr-0.5 select-none">@</span>
+                          <input
+                            type="text"
+                            value={instagram}
+                            onChange={(e) => setInstagram(e.target.value.replace(/^@/, "").replace(/\s/g, "").slice(0, 50))}
+                            placeholder="yourhandle"
+                            className="flex-1 bg-transparent text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))] py-2 text-sm outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

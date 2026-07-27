@@ -24,6 +24,11 @@ export interface User {
   displayName: string;
   avatar: string;
   bio: string;
+  profession?: string;
+  website?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
   followersCount: number;
   followingCount: number;
   postsCount: number;

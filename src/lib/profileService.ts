@@ -7,13 +7,18 @@ export interface ProfileData {
   bio: string;
   avatar_url: string;
   topics: Category[];
+  profession: string;
+  website: string;
+  twitter: string;
+  linkedin: string;
+  instagram: string;
 }
 
 /** Fetch the current user's profile from user_profiles */
 export async function fetchProfile(userId: string): Promise<ProfileData | null> {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("display_name, username, bio, avatar_url, topics")
+    .select("display_name, username, bio, avatar_url, topics, profession, website, twitter, linkedin, instagram")
     .eq("id", userId)
     .single();
 
@@ -29,6 +34,11 @@ export async function fetchProfile(userId: string): Promise<ProfileData | null> 
     bio: data.bio ?? "",
     avatar_url: data.avatar_url ?? "",
     topics: (data.topics ?? []) as Category[],
+    profession: data.profession ?? "",
+    website: data.website ?? "",
+    twitter: data.twitter ?? "",
+    linkedin: data.linkedin ?? "",
+    instagram: data.instagram ?? "",
   };
 }
 
@@ -63,6 +73,31 @@ export async function saveProfile(
     const { error: metaError } = await supabase.auth.updateUser({ data: meta });
     if (metaError) throw metaError;
   }
+}
+
+/** Fetch any user's profile by username (public) */
+export async function fetchProfileByUsername(username: string): Promise<(ProfileData & { id: string; created_at?: string }) | null> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("id, display_name, username, bio, avatar_url, topics, profession, website, twitter, linkedin, instagram")
+    .eq("username", username)
+    .single();
+
+  if (error) return null;
+
+  return {
+    id: data.id,
+    display_name: data.display_name ?? "",
+    username: data.username ?? "",
+    bio: data.bio ?? "",
+    avatar_url: data.avatar_url ?? "",
+    topics: (data.topics ?? []) as Category[],
+    profession: data.profession ?? "",
+    website: data.website ?? "",
+    twitter: data.twitter ?? "",
+    linkedin: data.linkedin ?? "",
+    instagram: data.instagram ?? "",
+  };
 }
 
 /** Upload avatar to Supabase Storage, return public URL */
