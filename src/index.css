@@ -191,6 +191,7 @@
 }
 .rich-content div {
   min-height: 1.2em;
+  color: hsl(var(--text-secondary));
 }
 .rich-content br {
   display: block;
