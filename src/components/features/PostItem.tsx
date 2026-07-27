@@ -88,7 +88,7 @@ export default function PostItem({
 
       {/* Main Point */}
       <Link to={`/post/${post.id}`} className="group block mb-3">
-        <h2 className="text-xl font-bold leading-snug text-[hsl(var(--text-primary))] group-hover:text-[hsl(var(--accent))] transition-colors duration-150">
+        <h2 className="text-lg font-bold leading-snug text-[hsl(var(--text-primary))] group-hover:text-[hsl(var(--accent))] transition-colors duration-150">
           {post.mainPoint}
         </h2>
       </Link>
