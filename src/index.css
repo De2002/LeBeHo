@@ -189,9 +189,17 @@
 .rich-content p {
   margin: 0.5rem 0;
 }
+.rich-content {
+  color: hsl(var(--text-secondary));
+}
+
+.rich-content > * {
+  color: hsl(var(--text-secondary));
+}
+
 .rich-content div {
   min-height: 1.2em;
-  color: hsl(var(--text-secondary));
+  color: hsl(var(--text-secondary)) !important;
 }
 .rich-content br {
   display: block;
