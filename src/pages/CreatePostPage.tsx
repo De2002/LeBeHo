@@ -74,7 +74,7 @@ export default function CreatePostPage() {
       const postId = await createPost({
         userId: user.id,
         mainPoint: mainPoint.trim(),
-        explanation: explanationText.trim(),
+        explanation: explanationHtml.trim(),
         category,
         type: postType,
         imageUrl: finalImageUrl || undefined,
