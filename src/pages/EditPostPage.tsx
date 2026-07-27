@@ -94,7 +94,7 @@ export default function EditPostPage() {
 
       await updatePost(id, {
         mainPoint: mainPoint.trim(),
-        explanation: explanationText.trim(),
+        explanation: explanationHtml.trim(),
         category,
         type: postType,
         imageUrl: finalImageUrl,
