@@ -106,12 +106,22 @@ export default function PostItem({
       )}
 
       {/* Explanation */}
-      <p className="text-[15px] text-[hsl(var(--text-secondary))] leading-relaxed mb-4">
-        {preview
-          ? post.explanation.slice(0, 220) +
-            (post.explanation.length > 220 ? "…" : "")
-          : post.explanation}
-      </p>
+      {post.explanation && (
+        preview ? (
+          <p className="text-[15px] text-[hsl(var(--text-secondary))] leading-relaxed mb-4">
+            {(() => {
+              // Strip HTML tags to get plain text for preview truncation
+              const plain = post.explanation.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+              return plain.length > 220 ? plain.slice(0, 220) + "…" : plain;
+            })()}
+          </p>
+        ) : (
+          <div
+            className="rich-content text-[15px] text-[hsl(var(--text-secondary))] leading-relaxed mb-4"
+            dangerouslySetInnerHTML={{ __html: post.explanation }}
+          />
+        )
+      )}
 
       {/* Sources */}
       {!preview && <SourceList sources={post.sources} />}

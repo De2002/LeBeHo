@@ -141,7 +141,7 @@ export default function PostPage() {
       {/* Explanation */}
       {post.explanation && (
         <div
-          className="mb-6 text-[16px] text-[hsl(var(--text-secondary))] leading-relaxed prose prose-neutral max-w-none"
+          className="rich-content mb-6 text-[16px] text-[hsl(var(--text-secondary))] leading-relaxed"
           dangerouslySetInnerHTML={{ __html: post.explanation }}
         />
       )}
