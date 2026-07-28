@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ExternalLink,
@@ -9,26 +9,29 @@ import {
   Globe,
   Loader2,
   BarChart2,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { usePosts } from "@/hooks/usePosts";
 import { fetchProfileByUsername } from "@/lib/profileService";
 import { fetchPosts, rowToPost } from "@/lib/postService";
-import { fetchUserReactions } from "@/lib/reactionService";
+import { fetchUserReactions, toggleReaction, type ReactionType } from "@/lib/reactionService";
+import { getFollowerCount, getFollowingCount, isFollowing } from "@/lib/followService";
 import { formatCount } from "@/lib/utils";
 import CategoryBadge from "@/components/features/CategoryBadge";
 import FollowButton from "@/components/features/FollowButton";
 import PostItem from "@/components/features/PostItem";
 import type { Category, Post } from "@/types";
 import type { ProfileData } from "@/lib/profileService";
+import { toast } from "sonner";
 
-type ProfileRow = ProfileData & { id: string };
+type ProfileRow = ProfileData & { id: string; created_at?: string };
 
-function trustInfo(score: number) {
-  if (score >= 90) return { label: "Highly Trusted", color: "#16A34A" };
-  if (score >= 75) return { label: "Trusted", color: "#2563EB" };
-  if (score >= 60) return { label: "Building Trust", color: "#CA8A04" };
-  return { label: "New Voice", color: "#DC2626" };
+function trustInfo(agreeRatio: number, postCount: number) {
+  if (postCount === 0) return { label: "New Voice", color: "#6B7280" };
+  if (agreeRatio >= 0.75) return { label: "Highly Trusted", color: "#16A34A" };
+  if (agreeRatio >= 0.55) return { label: "Trusted", color: "#2563EB" };
+  if (agreeRatio >= 0.4) return { label: "Building Trust", color: "#CA8A04" };
+  return { label: "New Voice", color: "#6B7280" };
 }
 
 function normaliseUrl(url: string): string {
@@ -36,16 +39,26 @@ function normaliseUrl(url: string): string {
   return url.startsWith("http") ? url : `https://${url}`;
 }
 
+function formatJoinDate(iso?: string): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+// In-memory discussion follow set for this page
+const localDiscSet = new Set<string>();
+
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const { user: authUser } = useAuth();
-  const { react: reactPost, toggleDiscussion: toggleDisc } = usePosts();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [authUserFollows, setAuthUserFollows] = useState(false);
 
   // Fetch profile
   useEffect(() => {
@@ -56,6 +69,16 @@ export default function ProfilePage() {
       setLoadingProfile(false);
     });
   }, [username]);
+
+  // Fetch follow counts + auth user follow state once profile id is known
+  useEffect(() => {
+    if (!profile?.id) return;
+    getFollowerCount(profile.id).then(setFollowerCount);
+    getFollowingCount(profile.id).then(setFollowingCount);
+    if (authUser?.id && authUser.id !== profile.id) {
+      isFollowing(authUser.id, profile.id).then(setAuthUserFollows);
+    }
+  }, [profile?.id, authUser?.id]);
 
   // Fetch posts once profile id is known
   useEffect(() => {
@@ -71,6 +94,60 @@ export default function ProfilePage() {
     }).catch(() => setLoadingPosts(false));
   }, [profile?.id, authUser?.id]);
 
+  // React handler
+  const handleReact = useCallback(async (postId: string, reactionType: "positive" | "negative") => {
+    if (!authUser) {
+      toast.error("Sign in to react to posts.");
+      return;
+    }
+    const currentPost = posts.find((p) => p.id === postId);
+    if (!currentPost) return;
+
+    const currentType: ReactionType | null = currentPost.reactions.positive.userReacted
+      ? "positive" : currentPost.reactions.negative.userReacted ? "negative" : null;
+
+    let positiveDelta = 0;
+    let negativeDelta = 0;
+    let newType: ReactionType | null;
+
+    if (currentType === reactionType) {
+      newType = null;
+      if (reactionType === "positive") positiveDelta = -1;
+      else negativeDelta = -1;
+    } else {
+      newType = reactionType;
+      if (currentType === "positive") positiveDelta = -1;
+      else if (currentType === "negative") negativeDelta = -1;
+      if (reactionType === "positive") positiveDelta += 1;
+      else negativeDelta += 1;
+    }
+
+    setPosts((prev) => prev.map((p) => {
+      if (p.id !== postId) return p;
+      return {
+        ...p,
+        reactions: {
+          positive: { ...p.reactions.positive, userReacted: newType === "positive", count: Math.max(0, p.reactions.positive.count + positiveDelta) },
+          negative: { ...p.reactions.negative, userReacted: newType === "negative", count: Math.max(0, p.reactions.negative.count + negativeDelta) },
+        },
+      };
+    }));
+
+    try {
+      await toggleReaction(authUser.id, postId, reactionType, currentType);
+    } catch {
+      toast.error("Failed to save reaction.");
+    }
+  }, [authUser, posts]);
+
+  // Toggle discussion follow (in-memory)
+  const handleToggleDiscussion = useCallback((postId: string) => {
+    if (localDiscSet.has(postId)) localDiscSet.delete(postId);
+    else localDiscSet.add(postId);
+    const following = localDiscSet.has(postId);
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, isFollowingDiscussion: following } : p));
+  }, []);
+
   if (loadingProfile) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 flex justify-center">
@@ -83,9 +160,7 @@ export default function ProfilePage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center">
         <p className="text-[hsl(var(--text-muted))]">User not found.</p>
-        <Link to="/" className="lb-btn-outline mt-6 inline-flex">
-          Back to feed
-        </Link>
+        <Link to="/" className="lb-btn-outline mt-6 inline-flex">Back to feed</Link>
       </div>
     );
   }
@@ -96,12 +171,14 @@ export default function ProfilePage() {
     ? profile.avatar_url
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0a0a0a&color=ffffff&size=160`;
 
-  const { label: trustLabel, color: trustColor } = trustInfo(70);
+  // Compute trust score from real reaction data
+  const totalPositive = posts.reduce((s, p) => s + p.reactions.positive.count, 0);
+  const totalReactions = posts.reduce((s, p) => s + p.reactions.positive.count + p.reactions.negative.count, 0);
+  const agreeRatio = totalReactions > 0 ? totalPositive / totalReactions : 0;
+  const { label: trustLabel, color: trustColor } = trustInfo(agreeRatio, posts.length);
 
-  const joinDate = ""; // not stored in profile table; would need created_at column
-
-  const hasSocials =
-    profile.website || profile.twitter || profile.linkedin || profile.instagram;
+  const joinDate = formatJoinDate(profile.created_at);
+  const hasSocials = profile.website || profile.twitter || profile.linkedin || profile.instagram;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -125,9 +202,7 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-extrabold text-[hsl(var(--text-primary))] mb-0.5 leading-tight">
           {displayName}
         </h1>
-        <p className="text-sm text-[hsl(var(--text-muted))] mb-2">
-          @{profile.username}
-        </p>
+        <p className="text-sm text-[hsl(var(--text-muted))] mb-2">@{profile.username}</p>
 
         {/* Profession */}
         {profile.profession && (
@@ -144,13 +219,22 @@ export default function ProfilePage() {
           </p>
         )}
 
+        {/* Trust badge */}
         <span
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-sm border mb-4"
-            style={{ color: trustColor, borderColor: trustColor + "40" }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: trustColor }} />
-            {trustLabel}
-          </span>
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-sm border mb-4"
+          style={{ color: trustColor, borderColor: trustColor + "40" }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: trustColor }} />
+          {trustLabel}
+        </span>
+
+        {/* Join date */}
+        {joinDate && (
+          <p className="inline-flex items-center gap-1 text-[11px] text-[hsl(var(--text-muted))] mb-3">
+            <Calendar size={10} />
+            Joined {joinDate}
+          </p>
+        )}
 
         {/* Topics */}
         {profile.topics.length > 0 && (
@@ -224,23 +308,21 @@ export default function ProfilePage() {
             <div className="text-lg font-extrabold text-[hsl(var(--text-primary))]">
               {loadingPosts ? "—" : formatCount(posts.length)}
             </div>
-            <div className="text-[11px] text-[hsl(var(--text-muted))] uppercase tracking-wide">
-              Posts
-            </div>
+            <div className="text-[11px] text-[hsl(var(--text-muted))] uppercase tracking-wide">Posts</div>
           </div>
           <div className="w-px h-8 bg-[hsl(var(--border))]" />
           <div className="text-center">
-            <div className="text-lg font-extrabold text-[hsl(var(--text-primary))]">—</div>
-            <div className="text-[11px] text-[hsl(var(--text-muted))] uppercase tracking-wide">
-              Followers
+            <div className="text-lg font-extrabold text-[hsl(var(--text-primary))]">
+              {formatCount(followerCount)}
             </div>
+            <div className="text-[11px] text-[hsl(var(--text-muted))] uppercase tracking-wide">Followers</div>
           </div>
           <div className="w-px h-8 bg-[hsl(var(--border))]" />
           <div className="text-center">
-            <div className="text-lg font-extrabold text-[hsl(var(--text-primary))]">—</div>
-            <div className="text-[11px] text-[hsl(var(--text-muted))] uppercase tracking-wide">
-              Following
+            <div className="text-lg font-extrabold text-[hsl(var(--text-primary))]">
+              {formatCount(followingCount)}
             </div>
+            <div className="text-[11px] text-[hsl(var(--text-muted))] uppercase tracking-wide">Following</div>
           </div>
         </div>
 
@@ -262,7 +344,10 @@ export default function ProfilePage() {
             </button>
           </div>
         ) : (
-          <FollowButton userId={profile.id} />
+          <FollowButton
+            userId={profile.id}
+            onToggle={(f) => setFollowerCount((c) => f ? c + 1 : Math.max(0, c - 1))}
+          />
         )}
       </div>
 
@@ -293,8 +378,8 @@ export default function ProfilePage() {
             <PostItem
               key={post.id}
               post={post}
-              onReact={reactPost}
-              onToggleDiscussion={toggleDisc}
+              onReact={handleReact}
+              onToggleDiscussion={handleToggleDiscussion}
               preview
             />
           ))

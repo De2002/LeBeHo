@@ -38,6 +38,7 @@ export default function ShareButton({ title, text, url }: ShareButtonProps) {
       aria-label="Share this post"
     >
       <Share2 size={14} />
+      <span>Share</span>
     </button>
   );
 }

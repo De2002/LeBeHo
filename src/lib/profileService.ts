@@ -79,7 +79,7 @@ export async function saveProfile(
 export async function fetchProfileByUsername(username: string): Promise<(ProfileData & { id: string; created_at?: string }) | null> {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("id, display_name, username, bio, avatar_url, topics, profession, website, twitter, linkedin, instagram")
+    .select("id, display_name, username, bio, avatar_url, topics, profession, website, twitter, linkedin, instagram, created_at")
     .eq("username", username)
     .single();
 
@@ -97,6 +97,7 @@ export async function fetchProfileByUsername(username: string): Promise<(Profile
     twitter: data.twitter ?? "",
     linkedin: data.linkedin ?? "",
     instagram: data.instagram ?? "",
+    created_at: data.created_at ?? undefined,
   };
 }
 
