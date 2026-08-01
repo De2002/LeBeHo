@@ -47,10 +47,15 @@ export async function saveProfile(
   userId: string,
   updates: Partial<ProfileData>
 ): Promise<void> {
-  // 1. Upsert into user_profiles
+  // Fetch email from auth session so the NOT NULL constraint is always satisfied
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const email = authUser?.email ?? "";
+
+  // 1. Upsert into user_profiles (include email so INSERT never violates NOT NULL)
   const { error: dbError } = await supabase.from("user_profiles").upsert(
     {
       id: userId,
+      email,
       ...updates,
     },
     { onConflict: "id" }
