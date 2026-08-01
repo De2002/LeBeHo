@@ -109,7 +109,10 @@ export async function uploadAvatar(
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${userId}/avatar.${ext}`;
 
-  console.log("[uploadAvatar] uploading:", path, file.type, file.size);
+  // Verify the session is active before uploading
+  const { data: sessionData } = await supabase.auth.getSession();
+  console.log("[uploadAvatar] session user:", sessionData?.session?.user?.id ?? "NO SESSION");
+  console.log("[uploadAvatar] uploading path:", path, "type:", file.type, "size:", file.size);
 
   // Pass File directly — avoids arrayBuffer memory issues on mobile
   const { data: uploadData, error } = await supabase.storage

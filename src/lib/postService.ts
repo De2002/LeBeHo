@@ -218,6 +218,11 @@ export async function uploadPostImage(userId: string, file: File): Promise<strin
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${userId}/${Date.now()}.${ext}`;
 
+  // Verify the session is active before uploading
+  const { data: sessionData } = await supabase.auth.getSession();
+  console.log("[uploadPostImage] session user:", sessionData?.session?.user?.id ?? "NO SESSION");
+  console.log("[uploadPostImage] uploading path:", path, "type:", file.type, "size:", file.size);
+
   // Use upsert:true so re-uploads never fail on duplicate path
   const { data: uploadData, error } = await supabase.storage
     .from("post-images")
