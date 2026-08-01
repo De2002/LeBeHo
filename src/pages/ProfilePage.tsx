@@ -202,7 +202,11 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-extrabold text-[hsl(var(--text-primary))] mb-0.5 leading-tight">
           {displayName}
         </h1>
-        <p className="text-sm text-[hsl(var(--text-muted))] mb-2">@{profile.username}</p>
+        {profile.username ? (
+          <p className="text-sm text-[hsl(var(--text-muted))] mb-2">@{profile.username}</p>
+        ) : (
+          <p className="text-sm text-[hsl(var(--text-muted))] italic mb-2">No username set</p>
+        )}
 
         {/* Profession */}
         {profile.profession && (

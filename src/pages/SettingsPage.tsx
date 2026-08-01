@@ -217,7 +217,7 @@ export default function SettingsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       {/* Back link */}
       <Link
-        to={`/profile/${user.username}`}
+        to={`/profile/${user.username || user.id}`}
         className="inline-flex items-center gap-1.5 text-xs text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] transition-colors mb-6"
       >
         <ArrowLeft size={12} />
@@ -695,7 +695,7 @@ export default function SettingsPage() {
                   )}
                 </button>
                 <Link
-                  to={`/profile/${user.username}`}
+                  to={`/profile/${user.username || user.id}`}
                   className="text-xs text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] transition-colors"
                 >
                   Cancel

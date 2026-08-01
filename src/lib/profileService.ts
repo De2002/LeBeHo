@@ -80,30 +80,48 @@ export async function saveProfile(
   }
 }
 
-/** Fetch any user's profile by username (public) */
-export async function fetchProfileByUsername(username: string): Promise<(ProfileData & { id: string; created_at?: string }) | null> {
+const PROFILE_SELECT = "id, display_name, username, bio, avatar_url, topics, profession, website, twitter, linkedin, instagram, created_at";
+
+function rowToProfileData(data: Record<string, unknown>): ProfileData & { id: string; created_at?: string } {
+  return {
+    id: data.id as string,
+    display_name: (data.display_name as string) ?? "",
+    username: (data.username as string) ?? "",
+    bio: (data.bio as string) ?? "",
+    avatar_url: (data.avatar_url as string) ?? "",
+    topics: ((data.topics as string[]) ?? []) as Category[],
+    profession: (data.profession as string) ?? "",
+    website: (data.website as string) ?? "",
+    twitter: (data.twitter as string) ?? "",
+    linkedin: (data.linkedin as string) ?? "",
+    instagram: (data.instagram as string) ?? "",
+    created_at: (data.created_at as string) ?? undefined,
+  };
+}
+
+/** Fetch any user's profile by username (public). Falls back to ID lookup. */
+export async function fetchProfileByUsername(usernameOrId: string): Promise<(ProfileData & { id: string; created_at?: string }) | null> {
+  // Try by username first
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("id, display_name, username, bio, avatar_url, topics, profession, website, twitter, linkedin, instagram, created_at")
-    .eq("username", username)
-    .single();
+    .select(PROFILE_SELECT)
+    .eq("username", usernameOrId)
+    .maybeSingle();
 
-  if (error) return null;
+  if (!error && data) return rowToProfileData(data as Record<string, unknown>);
 
-  return {
-    id: data.id,
-    display_name: data.display_name ?? "",
-    username: data.username ?? "",
-    bio: data.bio ?? "",
-    avatar_url: data.avatar_url ?? "",
-    topics: (data.topics ?? []) as Category[],
-    profession: data.profession ?? "",
-    website: data.website ?? "",
-    twitter: data.twitter ?? "",
-    linkedin: data.linkedin ?? "",
-    instagram: data.instagram ?? "",
-    created_at: data.created_at ?? undefined,
-  };
+  // Fall back to lookup by UUID (id)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(usernameOrId)) {
+    const { data: dataById } = await supabase
+      .from("user_profiles")
+      .select(PROFILE_SELECT)
+      .eq("id", usernameOrId)
+      .maybeSingle();
+    if (dataById) return rowToProfileData(dataById as Record<string, unknown>);
+  }
+
+  return null;
 }
 
 /** Upload avatar to Supabase Storage, return public URL */

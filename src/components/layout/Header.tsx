@@ -203,7 +203,7 @@ export default function Header() {
                           </p>
                         </div>
                         <Link
-                          to={`/profile/${displayUser.username}`}
+                          to={`/profile/${displayUser.username || displayUser.id}`}
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2 px-4 py-2.5 text-xs text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface))] transition-colors"
                         >
