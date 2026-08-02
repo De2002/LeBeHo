@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 
 type ThemeChoice = "light" | "dark" | "system";
 
-function getStoredTheme(): ThemeChoice {
+const LOCAL_KEY = "lb-theme";
+
+function getLocalTheme(): ThemeChoice {
   try {
-    const stored = localStorage.getItem("lb-theme") as ThemeChoice | null;
+    const stored = localStorage.getItem(LOCAL_KEY) as ThemeChoice | null;
     if (stored === "light" || stored === "dark" || stored === "system") return stored;
   } catch {}
   return "light";
@@ -17,44 +20,87 @@ function resolveTheme(choice: ThemeChoice): "light" | "dark" {
   return choice;
 }
 
+function applyTheme(choice: ThemeChoice) {
+  const resolved = resolveTheme(choice);
+  if (resolved === "dark") {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+}
+
+/** Persist theme to Supabase for signed-in users */
+async function saveThemeToDb(choice: ThemeChoice) {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user?.id;
+  if (!userId) return;
+  await supabase
+    .from("user_profiles")
+    .update({ topics: undefined, theme_preference: choice } as never)
+    .eq("id", userId);
+}
+
+/** Load theme from DB for current session user; returns null if not signed in or column missing */
+async function loadThemeFromDb(): Promise<ThemeChoice | null> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("theme_preference")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) return null;
+  const val = (data as Record<string, unknown>).theme_preference as string | null;
+  if (val === "light" || val === "dark" || val === "system") return val;
+  return null;
+}
+
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeChoice>(getStoredTheme);
+  const [theme, setThemeState] = useState<ThemeChoice>(getLocalTheme);
+  const hydratedRef = useRef(false);
 
-  const applyTheme = (choice: ThemeChoice) => {
-    const resolved = resolveTheme(choice);
-    const root = document.documentElement;
-    if (resolved === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  };
-
+  // On mount: apply stored theme immediately, then try to hydrate from DB
   useEffect(() => {
     applyTheme(theme);
-    try {
-      localStorage.setItem("lb-theme", theme);
-    } catch {}
+
+    loadThemeFromDb().then((dbTheme) => {
+      if (dbTheme && !hydratedRef.current) {
+        hydratedRef.current = true;
+        setThemeState(dbTheme);
+        try { localStorage.setItem(LOCAL_KEY, dbTheme); } catch {}
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Apply + persist whenever theme changes
+  useEffect(() => {
+    applyTheme(theme);
+    try { localStorage.setItem(LOCAL_KEY, theme); } catch {}
   }, [theme]);
 
-  // Re-apply when system preference changes (only relevant if theme === "system")
+  // Re-apply when system preference changes
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => {
-      if (theme === "system") applyTheme("system");
-    };
+    const handler = () => { if (theme === "system") applyTheme("system"); };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
 
-  const setTheme = (choice: ThemeChoice) => setThemeState(choice);
-  const toggleTheme = () =>
-    setThemeState((t) => {
-      const resolved = resolveTheme(t);
-      return resolved === "light" ? "dark" : "light";
-    });
+  const setTheme = (choice: ThemeChoice) => {
+    hydratedRef.current = true;
+    setThemeState(choice);
+    saveThemeToDb(choice);
+  };
 
-  // Expose the visually resolved value for UI that still needs light/dark
+  const toggleTheme = () => {
+    const next: ThemeChoice = resolveTheme(theme) === "light" ? "dark" : "light";
+    setTheme(next);
+  };
+
   const resolvedTheme = resolveTheme(theme);
 
   return { theme, resolvedTheme, setTheme, toggleTheme };

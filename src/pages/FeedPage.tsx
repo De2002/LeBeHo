@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { PenLine, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { FEED_TABS, CATEGORIES } from "@/constants";
 import { getFollowing } from "@/lib/auth";
 import PostFeed from "@/components/features/PostFeed";
@@ -61,9 +60,7 @@ export default function FeedPage() {
             >
               <RefreshCw size={13} />
             </button>
-            <Link to="/create" className="lb-btn-primary sm:hidden">
-              <PenLine size={14} />
-            </Link>
+
           </div>
         </div>
 
