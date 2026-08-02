@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { useTheme } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import Header from "@/components/layout/Header";
+import CreateFAB from "@/components/features/CreateFAB";
 import FeedPage from "@/pages/FeedPage";
 import PostPage from "@/pages/PostPage";
 import CreatePostPage from "@/pages/CreatePostPage";
@@ -30,6 +31,7 @@ function AppShell() {
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <CreateFAB />
       <Toaster
         position="bottom-right"
         toastOptions={{
