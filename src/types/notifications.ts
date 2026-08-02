@@ -1,7 +1,9 @@
 export type NotificationKind =
-  | "reaction"   // someone reacted to your post
-  | "comment"    // someone commented on a discussion you follow
-  | "new_post";  // a followed author published a new post
+  | "reaction"  // someone reacted to your post
+  | "comment"   // someone commented on your post
+  | "reply"     // someone replied to your comment
+  | "follow"    // someone followed you
+  | "new_post"; // a followed author published a new post (reserved)
 
 export interface AppNotification {
   id: string;
@@ -14,12 +16,12 @@ export interface AppNotification {
     displayName: string;
     avatar: string;
   };
-  post: {
+  post?: {
     id: string;
     mainPoint: string;
   };
-  /** reaction label e.g. "Agreed" — only for kind=reaction */
+  /** reaction type — only for kind=reaction */
   reactionLabel?: string;
-  /** comment snippet — only for kind=comment */
+  /** comment snippet — only for kind=comment or reply */
   commentSnippet?: string;
 }

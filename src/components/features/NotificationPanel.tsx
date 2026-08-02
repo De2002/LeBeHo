@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ThumbsUp, MessageSquare, FileText, CheckCheck } from "lucide-react";
+import { ThumbsUp, MessageSquare, UserPlus, CheckCheck, Reply, Loader2 } from "lucide-react";
 import type { AppNotification, NotificationKind } from "@/types/notifications";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -26,8 +26,18 @@ const KIND_META: Record<
     label: "Comments",
     color: "hsl(142 60% 40%)",
   },
+  reply: {
+    icon: Reply,
+    label: "Replies",
+    color: "hsl(28 90% 52%)",
+  },
+  follow: {
+    icon: UserPlus,
+    label: "New Followers",
+    color: "hsl(262 60% 55%)",
+  },
   new_post: {
-    icon: FileText,
+    icon: MessageSquare,
     label: "New Posts",
     color: "hsl(28 90% 52%)",
   },
@@ -43,42 +53,40 @@ function NotificationItem({ notification: n, onRead }: NotificationItemProps) {
   const Icon = meta.icon;
 
   const buildMessage = () => {
+    const actor = (
+      <span className="font-semibold text-[hsl(var(--text-primary))]">
+        {n.actor.displayName}
+      </span>
+    );
+
     if (n.kind === "reaction") {
-      return (
-        <>
-          <span className="font-semibold text-[hsl(var(--text-primary))]">
-            {n.actor.displayName}
-          </span>{" "}
-          {n.reactionLabel?.toLowerCase() === "agreed" ? "agreed with" : "disagreed with"} your post
-        </>
-      );
+      return <>{actor} reacted to your post</>;
     }
     if (n.kind === "comment") {
-      return (
-        <>
-          <span className="font-semibold text-[hsl(var(--text-primary))]">
-            {n.actor.displayName}
-          </span>{" "}
-          commented on a discussion you follow
-        </>
-      );
+      return <>{actor} commented on your post</>;
     }
-    return (
-      <>
-        <span className="font-semibold text-[hsl(var(--text-primary))]">
-          {n.actor.displayName}
-        </span>{" "}
-        published a new post
-      </>
-    );
+    if (n.kind === "reply") {
+      return <>{actor} replied to your comment</>;
+    }
+    if (n.kind === "follow") {
+      return <>{actor} started following you</>;
+    }
+    return <>{actor} published a new post</>;
   };
+
+  // Follow notifications navigate to profile, others to post
+  const href = n.kind === "follow"
+    ? `/profile/${n.actor.username}`
+    : n.post
+    ? `/post/${n.post.id}`
+    : "/";
 
   return (
     <Link
-      to={`/post/${n.post.id}`}
+      to={href}
       onClick={() => onRead(n.id)}
       className={`flex gap-3 px-4 py-3 hover:bg-[hsl(var(--surface))] transition-colors duration-100 relative group ${
-        !n.read ? "bg-[hsl(var(--surface)/0.6)]" : ""
+        !n.read ? "bg-[hsl(var(--surface)/0.5)]" : ""
       }`}
     >
       {/* Unread indicator */}
@@ -111,13 +119,21 @@ function NotificationItem({ notification: n, onRead }: NotificationItemProps) {
           {buildMessage()}
         </p>
         {/* Post snippet */}
-        <p className="text-[11px] text-[hsl(var(--text-muted))] mt-0.5 truncate max-w-[200px]">
-          "{n.post.mainPoint}"
-        </p>
+        {n.post && (
+          <p className="text-[11px] text-[hsl(var(--text-muted))] mt-0.5 truncate max-w-[200px]">
+            "{n.post.mainPoint}"
+          </p>
+        )}
         {/* Comment snippet */}
-        {n.kind === "comment" && n.commentSnippet && (
+        {(n.kind === "comment" || n.kind === "reply") && n.commentSnippet && (
           <p className="text-[11px] text-[hsl(var(--text-muted))] mt-1 line-clamp-2 leading-snug border-l border-[hsl(var(--border))] pl-2 italic">
             {n.commentSnippet}
+          </p>
+        )}
+        {/* Follow: show username */}
+        {n.kind === "follow" && (
+          <p className="text-[11px] text-[hsl(var(--text-muted))] mt-0.5">
+            @{n.actor.username}
           </p>
         )}
       </div>
@@ -172,9 +188,9 @@ export default function NotificationPanel({
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  // Group by kind
-  const groups: NotificationKind[] = ["reaction", "comment", "new_post"];
-  const grouped = groups
+  // Group notifications by kind
+  const kindOrder: NotificationKind[] = ["reaction", "comment", "reply", "follow"];
+  const grouped = kindOrder
     .map((kind) => ({
       kind,
       items: notifications.filter((n) => n.kind === kind),
@@ -219,7 +235,7 @@ export default function NotificationPanel({
         )}
       </div>
 
-      {/* Groups */}
+      {/* List */}
       <div className="max-h-[440px] overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="px-4 py-10 text-center">
@@ -227,7 +243,7 @@ export default function NotificationPanel({
               No notifications yet.
             </p>
             <p className="text-xs text-[hsl(var(--text-muted))] mt-1">
-              React to posts and follow discussions to get started.
+              You'll be notified when someone reacts to your posts, comments, or follows you.
             </p>
           </div>
         ) : (
@@ -235,13 +251,8 @@ export default function NotificationPanel({
             const meta = KIND_META[kind];
             return (
               <div key={kind}>
-                {/* Group label */}
                 <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
-                  <meta.icon
-                    size={10}
-                    style={{ color: meta.color }}
-                    aria-hidden
-                  />
+                  <meta.icon size={10} style={{ color: meta.color }} aria-hidden />
                   <span
                     className="text-[10px] font-semibold uppercase tracking-widest"
                     style={{ color: meta.color }}
@@ -269,9 +280,10 @@ export default function NotificationPanel({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-[hsl(var(--border))] px-4 py-2.5">
-        <p className="text-[10px] text-[hsl(var(--text-muted))] text-center">
-          Notifications update in real-time when backend is connected.
+      <div className="border-t border-[hsl(var(--border))] px-4 py-2 flex items-center justify-center gap-1.5">
+        <Loader2 size={9} className="text-[hsl(var(--text-muted))] opacity-50" />
+        <p className="text-[10px] text-[hsl(var(--text-muted))]">
+          Refreshes every 30 seconds
         </p>
       </div>
     </div>
