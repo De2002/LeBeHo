@@ -5,10 +5,9 @@ interface ShareButtonProps {
   title: string;
   text: string;
   url?: string;
-  compact?: boolean;
 }
 
-export default function ShareButton({ title, text, url, compact }: ShareButtonProps) {
+export default function ShareButton({ title, text, url }: ShareButtonProps) {
   const shareUrl = url ?? window.location.href;
 
   const handleShare = async () => {
@@ -35,10 +34,10 @@ export default function ShareButton({ title, text, url, compact }: ShareButtonPr
   return (
     <button
       onClick={handleShare}
-      className="flex items-center gap-1.5 text-[13px] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] transition-colors"
+      className="lb-btn-ghost"
       aria-label="Share this post"
     >
-      <Share2 size={compact ? 14 : 15} />
+      <Share2 size={14} />
       <span>Share</span>
     </button>
   );

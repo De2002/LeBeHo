@@ -20,7 +20,6 @@ export interface PostRow {
     display_name: string | null;
     avatar_url: string | null;
     bio: string | null;
-    profession: string | null;
     topics: string[] | null;
   } | null;
 }
@@ -46,7 +45,6 @@ export function rowToPost(row: PostRow, userReactions?: Record<string, "positive
       displayName,
       avatar,
       bio: profile?.bio ?? "",
-      profession: profile?.profession ?? undefined,
       followersCount: 0,
       followingCount: 0,
       postsCount: 0,
@@ -107,7 +105,6 @@ export async function fetchPosts(opts?: {
         display_name,
         avatar_url,
         bio,
-        profession,
         topics
       )
     `)
@@ -179,7 +176,6 @@ export async function fetchPostById(postId: string): Promise<PostRow | null> {
         display_name,
         avatar_url,
         bio,
-        profession,
         topics
       )
     `)
