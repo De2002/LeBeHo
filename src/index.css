@@ -4,17 +4,21 @@
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
+    --background: 0 0% 96%;
     --foreground: 0 0% 4%;
-    --surface: 0 0% 97%;
+    --surface: 0 0% 100%;
     --surface-raised: 0 0% 100%;
-    --border: 0 0% 88%;
+    --border: 0 0% 90%;
     --border-subtle: 0 0% 93%;
-    --text-primary: 0 0% 4%;
-    --text-secondary: 0 0% 38%;
-    --text-muted: 0 0% 58%;
-    --accent: 220 90% 50%;
+    --text-primary: 0 0% 8%;
+    --text-secondary: 0 0% 30%;
+    --text-muted: 0 0% 55%;
+    --accent: 0 80% 48%;
     --accent-fg: 0 0% 100%;
+
+    /* Agree / Disagree */
+    --agree: 142 70% 38%;
+    --disagree: 0 78% 48%;
 
     /* Category colors */
     --cat-tech: 214 90% 52%;
@@ -30,21 +34,24 @@
   }
 
   .dark {
-    --background: 0 0% 5%;
+    --background: 0 0% 7%;
     --foreground: 0 0% 95%;
-    --surface: 0 0% 8%;
-    --surface-raised: 0 0% 10%;
-    --border: 0 0% 16%;
-    --border-subtle: 0 0% 12%;
+    --surface: 0 0% 11%;
+    --surface-raised: 0 0% 13%;
+    --border: 0 0% 18%;
+    --border-subtle: 0 0% 14%;
     --text-primary: 0 0% 95%;
-    --text-secondary: 0 0% 62%;
+    --text-secondary: 0 0% 65%;
     --text-muted: 0 0% 42%;
-    --accent: 220 90% 60%;
+    --accent: 0 80% 55%;
     --accent-fg: 0 0% 100%;
+    --agree: 142 60% 45%;
+    --disagree: 0 72% 55%;
   }
 
   * {
     border-color: hsl(var(--border));
+    box-sizing: border-box;
   }
 
   body {
@@ -63,55 +70,54 @@
 }
 
 @layer components {
+  /* ── Layout helpers ── */
   .lb-divider {
     @apply border-b border-[hsl(var(--border))];
   }
-
   .lb-divider-subtle {
     @apply border-b border-[hsl(var(--border-subtle))];
   }
-
   .lb-surface {
     background-color: hsl(var(--surface));
   }
 
-  .lb-text-primary {
-    color: hsl(var(--text-primary));
-  }
+  /* ── Text helpers ── */
+  .lb-text-primary   { color: hsl(var(--text-primary)); }
+  .lb-text-secondary { color: hsl(var(--text-secondary)); }
+  .lb-text-muted     { color: hsl(var(--text-muted)); }
 
-  .lb-text-secondary {
-    color: hsl(var(--text-secondary));
-  }
-
-  .lb-text-muted {
-    color: hsl(var(--text-muted));
-  }
-
+  /* ── Buttons ── */
   .lb-btn-ghost {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-sm
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg
            text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))]
-           hover:bg-[hsl(var(--surface))] transition-colors duration-150;
+           hover:bg-[hsl(var(--border-subtle))] transition-colors duration-150;
   }
-
   .lb-btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-sm
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
            bg-[hsl(var(--text-primary))] text-[hsl(var(--background))]
-           hover:opacity-80 transition-opacity duration-150;
+           hover:opacity-85 transition-opacity duration-150;
   }
-
   .lb-btn-outline {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-sm
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
            border border-[hsl(var(--border))] text-[hsl(var(--text-primary))]
            hover:border-[hsl(var(--text-primary))] transition-colors duration-150;
   }
+  .lb-btn-red {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl
+           bg-[hsl(var(--accent))] text-white hover:opacity-90 transition-opacity duration-150;
+  }
+  .lb-btn-green {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl
+           bg-[hsl(var(--agree))] text-white hover:opacity-90 transition-opacity duration-150;
+  }
 
+  /* ── Inputs ── */
   .lb-input {
     @apply w-full bg-transparent border-b border-[hsl(var(--border))]
            text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))]
            py-2 text-sm outline-none focus:border-[hsl(var(--text-primary))]
            transition-colors duration-150;
   }
-
   .lb-textarea {
     @apply w-full bg-transparent border-b border-[hsl(var(--border))]
            text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))]
@@ -119,35 +125,31 @@
            transition-colors duration-150 resize-none;
   }
 
+  /* ── Feed tabs ── */
   .feed-tab {
-    @apply pb-3 text-sm font-medium text-[hsl(var(--text-muted))]
+    @apply pb-3 text-sm font-semibold text-[hsl(var(--text-muted))]
            border-b-2 border-transparent hover:text-[hsl(var(--text-primary))]
-           transition-colors duration-150 cursor-pointer whitespace-nowrap;
+           transition-colors duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5;
   }
-
   .feed-tab.active {
-    @apply text-[hsl(var(--text-primary))] border-[hsl(var(--text-primary))];
+    @apply text-[hsl(var(--accent))] border-[hsl(var(--accent))];
+  }
+
+  /* ── Post card ── */
+  .post-card {
+    @apply bg-[hsl(var(--surface))] rounded-2xl overflow-hidden shadow-sm
+           border border-[hsl(var(--border))] transition-shadow duration-200
+           hover:shadow-md;
   }
 }
 
-/* Rich text editor content styles */
-.rich-editor:focus {
-  outline: none;
-}
+/* ── Rich text editor ── */
+.rich-editor:focus { outline: none; }
 .rich-editor b,
-.rich-editor strong {
-  font-weight: 700;
-  color: hsl(var(--text-primary));
-}
+.rich-editor strong { font-weight: 700; color: hsl(var(--text-primary)); }
 .rich-editor i,
-.rich-editor em {
-  font-style: italic;
-}
-.rich-editor ul {
-  list-style: disc;
-  padding-left: 1.25rem;
-  margin: 0.5rem 0;
-}
+.rich-editor em    { font-style: italic; }
+.rich-editor ul    { list-style: disc; padding-left: 1.25rem; margin: 0.5rem 0; }
 .rich-editor blockquote {
   border-left: 2px solid hsl(var(--border));
   padding-left: 0.75rem;
@@ -155,30 +157,14 @@
   margin: 0.5rem 0;
 }
 
-/* Rich text rendered output — used for displaying saved post explanations */
+/* ── Rich text rendered output ── */
 .rich-content b,
-.rich-content strong {
-  font-weight: 700;
-  color: hsl(var(--text-primary));
-}
+.rich-content strong { font-weight: 700; color: hsl(var(--text-primary)); }
 .rich-content i,
-.rich-content em {
-  font-style: italic;
-}
-.rich-content ul {
-  list-style: disc;
-  padding-left: 1.4rem;
-  margin: 0.6rem 0;
-}
-.rich-content ol {
-  list-style: decimal;
-  padding-left: 1.4rem;
-  margin: 0.6rem 0;
-}
-.rich-content li {
-  margin: 0.25rem 0;
-  line-height: 1.65;
-}
+.rich-content em     { font-style: italic; }
+.rich-content ul     { list-style: disc; padding-left: 1.4rem; margin: 0.6rem 0; }
+.rich-content ol     { list-style: decimal; padding-left: 1.4rem; margin: 0.6rem 0; }
+.rich-content li     { margin: 0.25rem 0; line-height: 1.65; }
 .rich-content blockquote {
   border-left: 2px solid hsl(var(--border));
   padding-left: 0.85rem;
@@ -186,20 +172,19 @@
   margin: 0.75rem 0;
   font-style: italic;
 }
-.rich-content p {
-  margin: 0.5rem 0;
-}
-.rich-content div {
-  min-height: 1.2em;
-}
-.rich-content br {
-  display: block;
-  content: '';
-  margin-top: 0.4rem;
-}
+.rich-content p   { margin: 0.5rem 0; }
+.rich-content div { min-height: 1.2em; }
+.rich-content br  { display: block; content: ''; margin-top: 0.4rem; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 2px; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar         { width: 4px; height: 4px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: hsl(var(--border)); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--text-muted)); }
+
+/* ── Bottom nav safe area ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -9,6 +9,7 @@ export default function CreateFAB() {
   const { pathname } = useLocation();
 
   // Don't show on pages where writing is already the primary action
+  // Also hidden on mobile (BottomNav has the FAB there)
   const hidden = pathname === "/create" || pathname.startsWith("/edit/");
 
   if (loading || !user || hidden) return null;
@@ -18,12 +19,13 @@ export default function CreateFAB() {
       onClick={() => navigate("/create")}
       aria-label="Create new post"
       className="
+        hidden sm:flex
         fixed bottom-6 right-5
         z-40
         w-14 h-14
         rounded-full
-        bg-[hsl(var(--text-primary))]
-        text-[hsl(var(--background))]
+        bg-[hsl(var(--accent))]
+        text-white
         shadow-lg
         flex items-center justify-center
         transition-all duration-200

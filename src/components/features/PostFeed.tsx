@@ -16,14 +16,14 @@ export default function PostFeed({
 }: PostFeedProps) {
   if (posts.length === 0) {
     return (
-      <div className="py-16 text-center">
+      <div className="py-16 text-center bg-[hsl(var(--surface))] rounded-2xl border border-[hsl(var(--border))]">
         <p className="text-[hsl(var(--text-muted))] text-sm">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-0">
       {posts.map((post) => (
         <PostItem
           key={post.id}
