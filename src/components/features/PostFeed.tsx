@@ -1,4 +1,4 @@
-import PostItem from "./PostItem";
+import BubblePostItem from "./BubblePostItem";
 import type { Post } from "@/types";
 
 interface PostFeedProps {
@@ -10,8 +10,6 @@ interface PostFeedProps {
 
 export default function PostFeed({
   posts,
-  onReact,
-  onToggleDiscussion,
   emptyMessage = "No posts yet.",
 }: PostFeedProps) {
   if (posts.length === 0) {
@@ -23,14 +21,12 @@ export default function PostFeed({
   }
 
   return (
-    <div>
-      {posts.map((post) => (
-        <PostItem
+    <div className="pt-4">
+      {posts.map((post, index) => (
+        <BubblePostItem
           key={post.id}
           post={post}
-          onReact={onReact}
-          onToggleDiscussion={onToggleDiscussion}
-          preview
+          index={index}
         />
       ))}
     </div>

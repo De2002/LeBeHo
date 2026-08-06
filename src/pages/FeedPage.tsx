@@ -137,6 +137,8 @@ export default function FeedPage() {
             emptyMessage={
               activeTab === "truth-picks"
                 ? "No Truth Picks yet."
+                : activeTab === "following"
+                ? "Follow people to see their posts here."
                 : "No posts match these filters."
             }
           />
