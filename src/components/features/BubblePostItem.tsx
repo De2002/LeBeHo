@@ -119,14 +119,15 @@ export default function BubblePostItem({ post, index }: BubblePostItemProps) {
         {/* Main point */}
         <p
           className="
-            text-[hsl(var(--text-primary))] font-bold leading-snug
+            text-[hsl(var(--text-primary))] font-light leading-snug
             text-[1.15rem] sm:text-[1.3rem]
+            [font-family:'Inter',system-ui,sans-serif]
           "
         >
           {post.mainPoint}
         </p>
 
-        {/* Footer row: category + time */}
+        {/* Footer row: category + reactions + comments */}
         <div className="flex items-center gap-2 mt-3 flex-wrap">
           {catMeta && (
             <span
@@ -142,6 +143,23 @@ export default function BubblePostItem({ post, index }: BubblePostItemProps) {
           <span className="text-[11px] text-[hsl(var(--text-muted))] font-medium">
             {post.author.displayName}
           </span>
+          {/* Reaction summary */}
+          {(post.reactions.positive > 0 || post.reactions.negative > 0) && (
+            <>
+              <span className="text-[hsl(var(--border))]">·</span>
+              <span className="text-[11px] text-[hsl(var(--text-muted))] tabular-nums">
+                {post.reactions.positive > 0 && (
+                  <span className="mr-1">👍 {post.reactions.positive}</span>
+                )}
+                {post.reactions.positive > 0 && post.reactions.negative > 0 && (
+                  <span className="opacity-40 mr-1">·</span>
+                )}
+                {post.reactions.negative > 0 && (
+                  <span>👎 {post.reactions.negative}</span>
+                )}
+              </span>
+            </>
+          )}
           {post.commentsCount > 0 && (
             <>
               <span className="text-[hsl(var(--border))]">·</span>
