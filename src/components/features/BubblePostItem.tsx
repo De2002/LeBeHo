@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/constants";
 import type { Post } from "@/types";
 
@@ -30,7 +31,27 @@ interface BubblePostItemProps {
 
 export default function BubblePostItem({ post, index }: BubblePostItemProps) {
   const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
   const isLeft = index % 2 === 0;
+
+  // Staggered IntersectionObserver reveal
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const delay = Math.min(index, 6) * 70; // cap stagger at ~420ms
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => setVisible(true), delay);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -24px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [index]);
   const colorIndex = index % 5;
   const bubbleColor = isDark()
     ? BUBBLE_COLORS_DARK[colorIndex]
@@ -136,9 +157,21 @@ export default function BubblePostItem({ post, index }: BubblePostItemProps) {
 
   return (
     <div
-      className={`flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8 animate-fade-in ${
+      ref={containerRef}
+      className={`flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8 ${
         isLeft ? "flex-row" : "flex-row-reverse"
       }`}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible
+          ? "translateY(0)"
+          : isLeft
+          ? "translateY(18px)"
+          : "translateY(18px)",
+        transition: visible
+          ? "opacity 380ms cubic-bezier(0.22,1,0.36,1), transform 380ms cubic-bezier(0.22,1,0.36,1)"
+          : "none",
+      }}
     >
       {avatarEl}
       {bubbleEl}
